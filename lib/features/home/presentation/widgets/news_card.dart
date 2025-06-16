@@ -166,18 +166,20 @@ class NewsCard extends StatelessWidget {
                   SizedBox(height: 12),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: () => _openNewsWebView(context, newsData),
-                        label: Text("Xem online"),
-                        icon: Icon(Icons.open_in_browser),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
-                      ),
+                      // ElevatedButton.icon(
+                      //   onPressed: () => _openNewsWebView(context, newsData),
+                      //   label: Text("Xem online"),
+                      //   icon: Icon(Icons.open_in_browser),
+                      //   style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
+                      // ),
 
-                      TextButton(
+                      // TextButton(
+                      ElevatedButton.icon(
                         onPressed: onViewAnalysis,
-                        child: Text("Tóm tắt tin tức", style: TextStyle(color: Colors.redAccent)),
+                        label: Text("Tóm tắt tin tức"),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
                       ),
                     ],
                   ),
