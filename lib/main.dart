@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:news_bite_ai/features/home/presentation/providers/news_provider.dart';
-import 'package:news_bite_ai/features/home/presentation/views/news_screen.dart';
+import 'package:genews/features/home/presentation/providers/news_provider.dart';
+import 'package:genews/features/home/presentation/views/news_screen.dart';
 import 'package:offline_first_support/offline_first.dart';
 import 'package:provider/provider.dart';
 

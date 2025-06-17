@@ -1,4 +1,4 @@
-package com.example.news_bite_ai
+package com.example.genews
 
 import io.flutter.embedding.android.FlutterActivity
 

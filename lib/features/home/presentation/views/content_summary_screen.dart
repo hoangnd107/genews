@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:news_bite_ai/core/enums.dart';
-import 'package:news_bite_ai/features/home/presentation/providers/news_provider.dart';
-import 'package:news_bite_ai/features/home/presentation/views/video_preview_screen.dart';
-import 'package:news_bite_ai/shared/styles/colors.dart';
+import 'package:genews/core/enums.dart';
+import 'package:genews/features/home/presentation/providers/news_provider.dart';
+import 'package:genews/features/home/presentation/views/video_preview_screen.dart';
+import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 

@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart' as ai;
-import 'package:news_bite_ai/core/constants.dart';
-import 'package:news_bite_ai/features/home/data/models/news_data_model.dart';
+import 'package:genews/core/constants.dart';
+import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:offline_first_support/offline_first.dart';
 
 abstract class NewsApiRepository {

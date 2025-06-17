@@ -1,9 +1,9 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:news_bite_ai/core/enums.dart';
-import 'package:news_bite_ai/features/home/data/models/news_data_model.dart';
-import 'package:news_bite_ai/features/home/data/repository/news_api_repository.dart';
+import 'package:genews/core/enums.dart';
+import 'package:genews/features/home/data/models/news_data_model.dart';
+import 'package:genews/features/home/data/repository/news_api_repository.dart';
 
 class NewsProvider extends ChangeNotifier {
   final _newsRepo = NewsApiRepositoryImpl();

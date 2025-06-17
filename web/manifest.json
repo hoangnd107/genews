@@ -1,6 +1,6 @@
 {
-    "name": "news_bite_ai",
-    "short_name": "news_bite_ai",
+    "name": "genews",
+    "short_name": "genews",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
