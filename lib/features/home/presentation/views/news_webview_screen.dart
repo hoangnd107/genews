@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
-import 'package:genews/shared/styles/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/features/home/data/services/bookmarks_service.dart';
 
@@ -24,13 +23,13 @@ class NewsWebViewScreen extends StatefulWidget {
 class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   late final WebViewController _controller;
   bool isLoading = true;
-  bool _isBookmarked = false; // Thêm biến trạng thái
-  final BookmarksService _bookmarksService = BookmarksService(); // Khởi tạo service
+  bool _isBookmarked = false;
+  final BookmarksService _bookmarksService = BookmarksService();
 
   @override
   void initState() {
     super.initState();
-    _checkIfBookmarked(); // Kiểm tra trạng thái bookmark khi khởi tạo
+    _checkIfBookmarked();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -53,11 +52,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
       ..loadRequest(Uri.parse(widget.url));
   }
 
-  // Hàm kiểm tra xem tin tức đã được bookmark chưa
   void _checkIfBookmarked() async {
     final isSaved = await _bookmarksService.isArticleSaved(
         (widget.newsData.articleId ?? "") as Result);
-    if (mounted) { // Kiểm tra widget còn mounted không trước khi gọi setState
+    if (mounted) {
       setState(() {
         _isBookmarked = isSaved;
       });
@@ -69,26 +67,24 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
     String message;
 
     if (_isBookmarked) {
-      // Nếu đã bookmark, thì thực hiện hủy bookmark
       successfullyToggled =
       await _bookmarksService.removeArticle((widget.newsData.articleId ?? "") as Result);
-      message = successfullyToggled ? 'Đã bỏ lưu tin tức' : 'Lỗi khi bỏ lưu';
+      message = successfullyToggled ? 'Đã bỏ lưu' : 'Lỗi khi bỏ lưu';
     } else {
-      // Nếu chưa bookmark, thì thực hiện lưu
       successfullyToggled =
       await _bookmarksService.saveArticle(widget.newsData);
       message = successfullyToggled
-          ? 'Đã lưu tin tức'
+          ? 'Đã lưu'
           : 'Tin tức này đã được lưu trước đó hoặc có lỗi';
     }
 
     if (successfullyToggled) {
       setState(() {
-        _isBookmarked = !_isBookmarked; // Cập nhật trạng thái
+        _isBookmarked = !_isBookmarked;
       });
     }
 
-    if (mounted) { // Kiểm tra widget còn mounted không
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -102,15 +98,14 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Chi tiết tin tức"),
+        title: const Text("Điểm tin"),
         actions: [
           IconButton(
-            // Sử dụng _isBookmarked để chọn icon và tooltip
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border),
             onPressed: () {
-              _toggleBookmark(); // Gọi hàm toggle bookmark
+              _toggleBookmark();
             },
-            tooltip: _isBookmarked ? 'Bỏ lưu tin tức' : 'Lưu tin tức',
+            tooltip: _isBookmarked ? 'Bỏ lưu' : 'Lưu',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -127,7 +122,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
@@ -137,9 +132,9 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        backgroundColor: AppColors.primaryColor,
-        tooltip: 'Tóm tắt tin tức',
-        child: const Icon(Icons.summarize),
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text("Tóm tắt"),
+        tooltip: 'Tóm tắt',
       ),
     );
   }

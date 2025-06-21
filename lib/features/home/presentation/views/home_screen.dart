@@ -17,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final BookmarksService _bookmarksService = BookmarksService();
-  // Map to track saved states for articles
   final Map<String, bool> _savedStates = {};
   
   @override
@@ -30,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<NewsProvider>().fetchNews();
   }
 
-  // Load saved states for all visible articles
   Future<void> _loadSavedStates(List<Result> articles) async {
     for (var article in articles) {
       final articleId = article.articleId ?? article.link ?? '';
@@ -45,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Toggle save/unsave for an article
   void _toggleSave(Result article) async {
     final articleId = article.articleId ?? article.link ?? '';
     final isSaved = await _bookmarksService.toggleSave(article);
@@ -53,13 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _savedStates[articleId] = isSaved;
     });
-    //
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text(isSaved ? 'Đã lưu tin tức' : 'Đã xóa khỏi danh sách lưu'),
-    //     duration: Duration(seconds: 2),
-    //   ),
-    // );
   }
 
   @override
@@ -74,10 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 24,
             ),
             SizedBox(width: 8),
-            Text("Trang chủ"),
+            Text("GeNews", style: TextStyle(fontSize: 20)),
           ],
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
 
       body: Consumer<NewsProvider>(

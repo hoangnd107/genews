@@ -29,32 +29,69 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    final bottomNavBarBackgroundColor = isDarkMode
+        ? theme.colorScheme.surface
+        : Colors
+        .white;
+
+    final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+
     return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Trang chủ',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: bottomNavBarBackgroundColor,
+          border: Border(
+            top: BorderSide(
+                color: borderColor, width: 0.5),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Khám phá',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark),
-            label: 'Đã lưu',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Cài đặt',
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 0,
+              blurRadius: 5,
+              offset: Offset(0, -2), // changes position of shadow
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          // selectedItemColor: Colors.white,
+          selectedItemColor: isDarkMode ? Colors.white : Colors.grey[900],
+          unselectedItemColor: Colors.grey,
+          backgroundColor: isDarkMode
+              ? Colors.grey[900]
+              : Colors.transparent,
+          elevation: 0,
+
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Trang chủ',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore_outlined),
+              activeIcon: Icon(Icons.explore),
+              label: 'Khám phá',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_border),
+              activeIcon: Icon(Icons.bookmark),
+              label: 'Đã lưu',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'Cài đặt',
+            ),
+          ],
+        ),
       ),
     );
   }

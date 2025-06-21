@@ -80,7 +80,6 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen> {
                         // );
                       },
                       label: Text("Hỏi thêm về bài báo"),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
                     ),
                   ),
                   Divider(),
