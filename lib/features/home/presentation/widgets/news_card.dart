@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
-import 'package:genews/shared/styles/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/features/home/data/services/bookmarks_service.dart';
+import 'package:genews/features/home/data/utils/share_utils.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;
@@ -55,29 +55,14 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
 
   void _toggleSaved() async {
     final bookmarksService = BookmarksService();
-    // Thay đổi trạng thái bookmark
     setState(() {
       isSaved = !isSaved;
     });
 
-    // Thực hiện hành động lưu hoặc bỏ lưu
     if (isSaved) {
       await bookmarksService.saveArticle(widget.newsData);
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(
-      //     content: Text('Đã lưu tin tức'),
-      //     duration: Duration(seconds: 2),
-      //   ),
-      // );
     } else {
-      // Giả sử bạn có một hàm để xóa bài báo khỏi bookmark
-      await bookmarksService.removeArticle(widget.newsData); // Bạn cần tự tạo hàm này trong BookmarksService
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(
-      //     content: Text('Đã bỏ lưu tin tức'),
-      //     duration: Duration(seconds: 2),
-      //   ),
-      // );
+      await bookmarksService.removeArticle(widget.newsData);
     }
   }
 
@@ -85,12 +70,23 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Chi tiết tin tức"),
+        title: Text("Điểm tin"),
         actions: [
           IconButton(
             icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
             onPressed: _toggleSaved,
-            tooltip: isSaved ? 'Bỏ lưu' : 'Lưu tin tức',
+            tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () {
+              shareNewsLink(
+                context: context,
+                url: widget.url, // URL hiện tại của WebView
+                title: widget.title,
+              );
+            },
+            tooltip: 'Chia sẻ',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -107,7 +103,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
@@ -116,9 +112,9 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        backgroundColor: AppColors.primaryColor,
-        child: const Icon(Icons.summarize),
-        tooltip: 'Tóm tắt tin tức',
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text("Tóm tắt"),
+        tooltip: 'Tóm tắt',
       ),
     );
   }
@@ -137,6 +133,19 @@ class NewsCard extends StatelessWidget {
     required this.onSave,
     this.isSaved = false,
   });
+
+  String _formatPubDate(BuildContext context, DateTime? pubDateTime) {
+    if (pubDateTime == null) {
+      return "Không rõ ngày";
+    }
+    try {
+      final formatter = DateFormat("EEEE, dd MMMM, yyyy", 'vi_VN');
+      return formatter.format(pubDateTime);
+    } catch (e) {
+      debugPrint("Lỗi format ngày tháng: $e.");
+      return DateFormat('dd/MM/yyyy').format(pubDateTime);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,17 +185,17 @@ class NewsCard extends StatelessWidget {
                             radius: 15,
                             backgroundImage: CachedNetworkImageProvider(newsData.sourceIcon ?? ""),
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 8),
                           Text(
                             newsData.sourceName ?? "",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueAccent),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
                       ),
-
+                      const SizedBox(width: 8),
                       Text(
-                        DateFormat.MMMEd().format(newsData.pubDate ?? DateTime.now()),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        _formatPubDate(context, newsData.pubDate),
+                        style: TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
@@ -195,7 +204,7 @@ class NewsCard extends StatelessWidget {
 
                   // News Title
                   Text(
-                    newsData.title ?? "",
+                    newsData.title ?? "Không có tiêu đề",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -203,26 +212,36 @@ class NewsCard extends StatelessWidget {
                   SizedBox(height: 6),
                   Text(
                     newsData.description ?? "",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    style: TextStyle(fontSize: 14),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 12),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // TextButton(
-                      ElevatedButton.icon(
+                      TextButton.icon(
                         onPressed: onViewAnalysis,
-                        label: Text("Tóm tắt tin tức"),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text("Tóm tắt"),
                       ),
-                      SizedBox(width: 8),
-                      ElevatedButton.icon(
+                      const SizedBox(width: 4),
+                      TextButton.icon(
                         onPressed: onSave,
                         icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
                         label: Text(isSaved ? "Bỏ lưu" : "Lưu"),
+                      ),
+                      const SizedBox(width: 4),
+                      TextButton.icon(
+                        onPressed: () {
+                          shareNewsLink(
+                            context: context,
+                            url: newsData.link ?? newsData.sourceUrl,
+                            title: newsData.title,
+                          );
+                        },
+                        icon: const Icon(Icons.share_outlined),
+                        label: const Text("Chia sẻ"),
                       ),
                     ],
                   ),
@@ -238,14 +257,19 @@ class NewsCard extends StatelessWidget {
 
 void _openNewsWebView(BuildContext context, Result newsData) {
   final url = newsData.link ?? newsData.sourceUrl ?? "";
-  if (url.isEmpty) return;
+  if (url.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Không có liên kết để mở.')),
+    );
+    return;
+  }
 
   Navigator.push(
     context,
     MaterialPageRoute(
       builder: (context) => NewsWebViewScreen(
         url: url,
-        title: newsData.title ?? "News Article",
+        title: newsData.title ?? "Tin tức",
         newsData: newsData,
       ),
     ),
