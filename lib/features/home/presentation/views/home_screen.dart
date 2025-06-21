@@ -5,15 +5,21 @@ import 'package:genews/features/home/presentation/views/news_summary_screen.dart
 import 'package:genews/features/home/presentation/widgets/news_card.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
+import 'package:genews/features/home/data/models/news_data_model.dart';
+import 'package:genews/features/home/data/services/bookmarks_service.dart';
 
-class NewsScreen extends StatefulWidget {
-  const NewsScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<NewsScreen> createState() => _NewsScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _NewsScreenState extends State<NewsScreen> {
+class _HomeScreenState extends State<HomeScreen> {
+  final BookmarksService _bookmarksService = BookmarksService();
+  // Map to track saved states for articles
+  final Map<String, bool> _savedStates = {};
+  
   @override
   void initState() {
     super.initState();
@@ -24,17 +30,70 @@ class _NewsScreenState extends State<NewsScreen> {
     context.read<NewsProvider>().fetchNews();
   }
 
+  // Load saved states for all visible articles
+  Future<void> _loadSavedStates(List<Result> articles) async {
+    for (var article in articles) {
+      final articleId = article.articleId ?? article.link ?? '';
+      if (articleId.isNotEmpty) {
+        final isSaved = await _bookmarksService.isArticleSaved(article);
+        if (mounted) {
+          setState(() {
+            _savedStates[articleId] = isSaved;
+          });
+        }
+      }
+    }
+  }
+
+  // Toggle save/unsave for an article
+  void _toggleSave(Result article) async {
+    final articleId = article.articleId ?? article.link ?? '';
+    final isSaved = await _bookmarksService.toggleSave(article);
+    
+    setState(() {
+      _savedStates[articleId] = isSaved;
+    });
+    //
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text(isSaved ? 'Đã lưu tin tức' : 'Đã xóa khỏi danh sách lưu'),
+    //     duration: Duration(seconds: 2),
+    //   ),
+    // );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Tin tức hot"), centerTitle: false),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/icon/icon.png',
+              height: 24,
+              width: 24,
+            ),
+            SizedBox(width: 8),
+            Text("Trang chủ"),
+          ],
+        ),
+        centerTitle: false,
+      ),
 
       body: Consumer<NewsProvider>(
         builder: (context, newsState, child) {
           if (newsState.newsViewState == ViewState.busy) {
             return Center(child: CircularProgressIndicator());
           }
-          if ((newsState.allNews.results ?? []).isEmpty || newsState.newsViewState == ViewState.error) {
+          
+          final articles = newsState.allNews.results ?? [];
+          
+          // Load saved states when we have articles
+          if (articles.isNotEmpty) {
+            _loadSavedStates(articles);
+          }
+          
+          if (articles.isEmpty || newsState.newsViewState == ViewState.error) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -65,9 +124,12 @@ class _NewsScreenState extends State<NewsScreen> {
           return Padding(
             padding: const EdgeInsets.all(10),
             child: ListView.builder(
-              itemCount: (newsState.allNews.results ?? []).length,
+              itemCount: articles.length,
               itemBuilder: (context, index) {
-                final data = (newsState.allNews.results ?? [])[index];
+                final data = articles[index];
+                final articleId = data.articleId ?? data.link ?? '';
+                final isSaved = _savedStates[articleId] ?? false;
+                
                 return NewsCard(
                   newsData: data,
                   onViewAnalysis: () {
@@ -76,6 +138,8 @@ class _NewsScreenState extends State<NewsScreen> {
                       MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: data)),
                     );
                   },
+                  onSave: () => _toggleSave(data),
+                  isSaved: isSaved, // Pass saved state to NewsCard
                 );
               },
             ),

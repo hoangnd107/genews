@@ -5,6 +5,7 @@ import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:genews/features/home/data/services/bookmarks_service.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;
@@ -25,6 +26,7 @@ class NewsWebViewScreen extends StatefulWidget {
 class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   late final WebViewController _controller;
   bool isLoading = true;
+  bool isSaved = false;
 
   @override
   void initState() {
@@ -51,12 +53,45 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
       ..loadRequest(Uri.parse(widget.url));
   }
 
+  void _toggleSaved() async {
+    final bookmarksService = BookmarksService();
+    // Thay đổi trạng thái bookmark
+    setState(() {
+      isSaved = !isSaved;
+    });
+
+    // Thực hiện hành động lưu hoặc bỏ lưu
+    if (isSaved) {
+      await bookmarksService.saveArticle(widget.newsData);
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Đã lưu tin tức'),
+      //     duration: Duration(seconds: 2),
+      //   ),
+      // );
+    } else {
+      // Giả sử bạn có một hàm để xóa bài báo khỏi bookmark
+      await bookmarksService.removeArticle(widget.newsData); // Bạn cần tự tạo hàm này trong BookmarksService
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Đã bỏ lưu tin tức'),
+      //     duration: Duration(seconds: 2),
+      //   ),
+      // );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Chi tiết tin tức"),
         actions: [
+          IconButton(
+            icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: _toggleSaved,
+            tooltip: isSaved ? 'Bỏ lưu' : 'Lưu tin tức',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => _controller.reload(),
@@ -92,7 +127,16 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
 class NewsCard extends StatelessWidget {
   final Result newsData;
   final VoidCallback onViewAnalysis;
-  const NewsCard({super.key, required this.newsData, required this.onViewAnalysis});
+  final VoidCallback onSave;
+  final bool isSaved;
+
+  const NewsCard({
+    super.key,
+    required this.newsData,
+    required this.onViewAnalysis,
+    required this.onSave,
+    this.isSaved = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -168,18 +212,17 @@ class NewsCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // ElevatedButton.icon(
-                      //   onPressed: () => _openNewsWebView(context, newsData),
-                      //   label: Text("Xem online"),
-                      //   icon: Icon(Icons.open_in_browser),
-                      //   style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
-                      // ),
-
                       // TextButton(
                       ElevatedButton.icon(
                         onPressed: onViewAnalysis,
                         label: Text("Tóm tắt tin tức"),
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
+                      ),
+                      SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: onSave,
+                        icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+                        label: Text(isSaved ? "Bỏ lưu" : "Lưu"),
                       ),
                     ],
                   ),

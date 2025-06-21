@@ -214,4 +214,4 @@ doc/api/
 .idx/
 .vscode/
 
-lib/core/constants.dart
+!/lib/core/constants.dart
