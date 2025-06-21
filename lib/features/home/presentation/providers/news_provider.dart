@@ -58,42 +58,6 @@ class NewsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> generateSocialMediaPost(String content) async {
-    if (content.isEmpty) return;
-    newsContentState = ViewState.busy;
-    _updateUI();
-
-    try {
-      final newsResult = await _newsRepo.generateNewsAiSocialContents(content);
-
-      socialMediaPost = newsResult;
-      newsContentState = ViewState.success;
-      _updateUI();
-    } catch (e) {
-      newsContentState = ViewState.error;
-      _updateUI();
-      log(e.toString());
-    }
-  }
-
-  Future<void> generateVideoScript(String content) async {
-    if (content.isEmpty) return;
-    newsContentState = ViewState.busy;
-    _updateUI();
-
-    try {
-      final newsResult = await _newsRepo.generateNewsAiVideoScript(content);
-
-      generatedVideoScript = newsResult;
-      newsContentState = ViewState.success;
-      _updateUI();
-    } catch (e) {
-      newsContentState = ViewState.error;
-      _updateUI();
-      log(e.toString());
-    }
-  }
-
   void _updateUI() {
     Future.delayed(const Duration(seconds: 1), () {
       notifyListeners();

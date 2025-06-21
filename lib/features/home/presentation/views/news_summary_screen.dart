@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:genews/core/enums.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/presentation/providers/news_provider.dart';
-import 'package:genews/features/home/presentation/views/content_summary_screen.dart';
-import 'package:genews/features/home/presentation/widgets/news_analysis_screen.dart';
+import 'package:genews/features/home/presentation/widgets/news_summary_screen.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
 
@@ -69,28 +68,22 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen> {
               child: Column(
                 children: [
                   Text(widget.newsData.title ?? "", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-
                   const SizedBox(height: 8),
-
                   buildSection("Nội dung tóm tắt", newsState.analysis),
-
-                  SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => ContentCreationScreen(analysis: newsState.analysis)),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(builder: (context) => ContentCreationScreen(analysis: newsState.analysis)),
+                        // );
                       },
-                      label: Text("Tạo nội dung"),
+                      label: Text("Hỏi thêm về bài báo"),
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
                     ),
                   ),
                   Divider(),
-                  Center(child: Text("AI can make mistakes. Verify all information.", textAlign: TextAlign.center)),
-                  SizedBox(height: 20),
                 ],
               ),
             ),

@@ -39,11 +39,12 @@ dependencies:
   url_launcher: ^6.3.1
   intl: ^0.20.2
   google_generative_ai: ^0.4.6
-  firebase_core: ^3.13.0
+  firebase_core: ^3.14.0
   share_plus: ^11.0.0
   offline_first_support: ^0.1.0
   webview_flutter: ^4.13.0
   flutter_launcher_icons: ^0.14.4
+  cloud_firestore: ^5.6.9
 
 dev_dependencies:
   flutter_test:

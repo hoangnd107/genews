@@ -3,9 +3,14 @@ import 'package:genews/features/home/presentation/providers/news_provider.dart';
 import 'package:genews/features/home/presentation/views/news_screen.dart';
 import 'package:offline_first_support/offline_first.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await OfflineFirst.init();
   runApp(MyApp());
 }

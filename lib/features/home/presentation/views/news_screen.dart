@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:genews/core/enums.dart';
 import 'package:genews/features/home/presentation/providers/news_provider.dart';
-import 'package:genews/features/home/presentation/views/news_analysis_screen.dart';
+import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
 import 'package:genews/features/home/presentation/widgets/news_card.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';

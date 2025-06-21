@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
-import 'package:genews/features/home/presentation/views/news_analysis_screen.dart';
+import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 

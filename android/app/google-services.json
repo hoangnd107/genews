@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "870609517670",
-    "project_id": "news-bite-ai",
-    "storage_bucket": "news-bite-ai.firebasestorage.app"
+    "project_number": "495092528687",
+    "project_id": "ai-news-aggregator-460410",
+    "storage_bucket": "ai-news-aggregator-460410.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:870609517670:android:ebe917e20ce7b19ef681a7",
+        "mobilesdk_app_id": "1:495092528687:android:8f9f499818eac3bb1c78da",
         "android_client_info": {
           "package_name": "com.example.genews"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "870609517670-8t9e9vonoanp7t1q4ajrajgibq5eas6g.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD2FOnvkfZz3xBmzteEr_Amnf4WHkB0pvA"
+          "current_key": "AIzaSyCxd3V-sgBonC3G4XBuacXHZwQE1UCT1vM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "870609517670-8t9e9vonoanp7t1q4ajrajgibq5eas6g.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
