@@ -220,19 +220,19 @@ class NewsCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton.icon(
+                      IconButton(
                         onPressed: onViewAnalysis,
                         icon: const Icon(Icons.auto_awesome),
-                        label: const Text("Tóm tắt"),
+                        tooltip: 'Tóm tắt',
                       ),
                       const SizedBox(width: 4),
-                      TextButton.icon(
+                      IconButton(
                         onPressed: onSave,
                         icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
-                        label: Text(isSaved ? "Bỏ lưu" : "Lưu"),
+                        tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
                       ),
                       const SizedBox(width: 4),
-                      TextButton.icon(
+                      IconButton(
                         onPressed: () {
                           shareNewsLink(
                             context: context,
@@ -241,7 +241,7 @@ class NewsCard extends StatelessWidget {
                           );
                         },
                         icon: const Icon(Icons.share_outlined),
-                        label: const Text("Chia sẻ"),
+                        tooltip: 'Chia sẻ',
                       ),
                     ],
                   ),
