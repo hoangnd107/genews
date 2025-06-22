@@ -13,6 +13,16 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cài đặt'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications_none),
+            onPressed: () {
+              // Handle notification tap
+              // You can navigate to a notifications screen here
+            },
+          ),
+        ],
       ),
       body: ListView(
         children: <Widget>[

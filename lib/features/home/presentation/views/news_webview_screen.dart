@@ -132,7 +132,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        icon: const Icon(Icons.auto_awesome),
+        icon: const Icon(Icons.bolt),
         label: const Text("Tóm tắt"),
         tooltip: 'Tóm tắt',
       ),

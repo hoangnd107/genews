@@ -31,26 +31,27 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              isLoading = true;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              isLoading = false;
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint('Lỗi: ${error.description}');
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+    _controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (String url) {
+                setState(() {
+                  isLoading = true;
+                });
+              },
+              onPageFinished: (String url) {
+                setState(() {
+                  isLoading = false;
+                });
+              },
+              onWebResourceError: (WebResourceError error) {
+                debugPrint('Lỗi: ${error.description}');
+              },
+            ),
+          )
+          ..loadRequest(Uri.parse(widget.url));
   }
 
   void _toggleSaved() async {
@@ -78,7 +79,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined),
+            icon: const Icon(Icons.ios_share),
             onPressed: () {
               shareNewsLink(
                 context: context,
@@ -97,10 +98,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+          if (isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -108,11 +106,12 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NewsAnalysisScreen(newsData: widget.newsData),
+              builder:
+                  (context) => NewsAnalysisScreen(newsData: widget.newsData),
             ),
           );
         },
-        icon: const Icon(Icons.auto_awesome),
+        icon: const Icon(Icons.bolt),
         label: const Text("Tóm tắt"),
         tooltip: 'Tóm tắt',
       ),
@@ -165,7 +164,9 @@ class NewsCard extends StatelessWidget {
                 width: double.infinity,
                 height: 180,
                 fit: BoxFit.cover,
-                errorWidget: (context, error, stackTrace) => Container(height: 180, color: Colors.grey[300]),
+                errorWidget:
+                    (context, error, stackTrace) =>
+                        Container(height: 180, color: Colors.grey[300]),
               ),
             ),
 
@@ -183,12 +184,17 @@ class NewsCard extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 15,
-                            backgroundImage: CachedNetworkImageProvider(newsData.sourceIcon ?? ""),
+                            backgroundImage: CachedNetworkImageProvider(
+                              newsData.sourceIcon ?? "",
+                            ),
                           ),
                           SizedBox(width: 8),
                           Text(
                             newsData.sourceName ?? "",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
@@ -222,13 +228,15 @@ class NewsCard extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: onViewAnalysis,
-                        icon: const Icon(Icons.auto_awesome),
+                        icon: const Icon(Icons.bolt),
                         tooltip: 'Tóm tắt',
                       ),
                       const SizedBox(width: 4),
                       IconButton(
                         onPressed: onSave,
-                        icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+                        icon: Icon(
+                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        ),
                         tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
                       ),
                       const SizedBox(width: 4),
@@ -240,7 +248,7 @@ class NewsCard extends StatelessWidget {
                             title: newsData.title,
                           );
                         },
-                        icon: const Icon(Icons.share_outlined),
+                        icon: const Icon(Icons.ios_share),
                         tooltip: 'Chia sẻ',
                       ),
                     ],
@@ -258,20 +266,21 @@ class NewsCard extends StatelessWidget {
 void _openNewsWebView(BuildContext context, Result newsData) {
   final url = newsData.link ?? newsData.sourceUrl ?? "";
   if (url.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Không có liên kết để mở.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Không có liên kết để mở.')));
     return;
   }
 
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => NewsWebViewScreen(
-        url: url,
-        title: newsData.title ?? "Tin tức",
-        newsData: newsData,
-      ),
+      builder:
+          (context) => NewsWebViewScreen(
+            url: url,
+            title: newsData.title ?? "Tin tức",
+            newsData: newsData,
+          ),
     ),
   );
 }

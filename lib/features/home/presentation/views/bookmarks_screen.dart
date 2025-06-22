@@ -44,6 +44,23 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tin đã lưu'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              // Handle search functionality
+              // You can show search dialog or navigate to search screen
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.notifications_none),
+            onPressed: () {
+              // Handle notification tap
+              // You can navigate to a notifications screen here
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<List<Result>>(
         future: _savedArticlesFuture,
