@@ -32,22 +32,22 @@ class _MainScreenState extends State<MainScreen> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    final bottomNavBarBackgroundColor = isDarkMode
-        ? theme.colorScheme.surface
-        : Colors
-        .white;
+    final bottomNavBarBackgroundColor =
+        isDarkMode ? theme.colorScheme.surface : Colors.white;
 
     final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
 
     return Scaffold(
+      extendBody: false, // Đảm bảo body không extend dưới bottom navigation bar
+      extendBodyBehindAppBar:
+          false, // Đảm bảo body không extend phía sau app bar
+      resizeToAvoidBottomInset:
+          false, // Ngăn bottom nav bar bị đẩy lên khi có keyboard
       body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: bottomNavBarBackgroundColor,
-          border: Border(
-            top: BorderSide(
-                color: borderColor, width: 0.5),
-          ),
+          border: Border(top: BorderSide(color: borderColor, width: 0.5)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -61,14 +61,14 @@ class _MainScreenState extends State<MainScreen> {
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
-          // selectedItemColor: Colors.white,
           selectedItemColor: isDarkMode ? Colors.white : Colors.grey[900],
           unselectedItemColor: Colors.grey,
-          backgroundColor: isDarkMode
-              ? Colors.grey[900]
-              : Colors.transparent,
+          backgroundColor: isDarkMode ? Colors.grey[900] : Colors.transparent,
           elevation: 0,
-
+          enableFeedback: true, // Thêm haptic feedback khi tap
+          showSelectedLabels: true, // Luôn hiển thị label của item được chọn
+          showUnselectedLabels:
+              true, // Luôn hiển thị label của item không được chọn
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
@@ -85,12 +85,7 @@ class _MainScreenState extends State<MainScreen> {
               activeIcon: Icon(Icons.bookmark),
               label: 'Đã lưu',
             ),
-            BottomNavigationBarItem(
-              // icon: Icon(Icons.settings_outlined),
-              // activeIcon: Icon(Icons.settings),
-              icon: Icon(Icons.menu),
-              label: 'Cài đặt',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Cài đặt'),
           ],
         ),
       ),

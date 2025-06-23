@@ -106,8 +106,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  NewsAnalysisScreen(newsData: widget.newsData),
+              builder:
+                  (context) => NewsAnalysisScreen(newsData: widget.newsData),
             ),
           );
         },
@@ -168,10 +168,8 @@ class NewsCard extends StatelessWidget {
     if (categoryStr.isEmpty) return "";
 
     // Clean up category text and convert to lowercase for matching
-    String cleanCategory = categoryStr
-        .replaceAll(RegExp(r'[^\w\s]'), '')
-        .trim()
-        .toLowerCase();
+    String cleanCategory =
+        categoryStr.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
 
     // Try to find exact match first
     if (_categoryTranslations.containsKey(cleanCategory)) {
@@ -188,9 +186,12 @@ class NewsCard extends StatelessWidget {
     // If no match found, capitalize first letter of each word
     return cleanCategory
         .split(' ')
-        .map((word) => word.isNotEmpty
-        ? '${word[0].toUpperCase()}${word.substring(1)}'
-        : '')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1)}'
+                  : '',
+        )
         .join(' ');
   }
 
@@ -235,11 +236,10 @@ class NewsCard extends StatelessWidget {
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-
                 children: [
+                  // Source và Category
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                     children: [
                       Row(
                         children: [
@@ -260,10 +260,15 @@ class NewsCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _formatPubDate(context, newsData.pubDate),
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      if (newsData.category != null)
+                        Text(
+                          _translateCategory(newsData.category),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
                     ],
                   ),
 
@@ -284,54 +289,53 @@ class NewsCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 12),
+
+                  // PubDate và Action buttons
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (newsData.category != null)
-                        Expanded(
-                          child: RichText(
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: _translateCategory(newsData.category),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      // PubDate thay thế category
+                      Expanded(
+                        child: Text(
+                          _formatPubDate(context, newsData.pubDate),
+                          style: TextStyle(
+                            fontSize: 13,
                           ),
-                        )
-                      else
-                        Expanded(child: SizedBox()),
-                      IconButton(
-                        onPressed: onViewAnalysis,
-                        icon: const Icon(Icons.bolt),
-                        tooltip: 'Tóm tắt',
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        onPressed: onSave,
-                        icon: Icon(
-                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
                       ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        onPressed: () {
-                          shareNewsLink(
-                            context: context,
-                            url: newsData.link ?? newsData.sourceUrl,
-                            title: newsData.title,
-                          );
-                        },
-                        icon: const Icon(Icons.ios_share),
-                        tooltip: 'Chia sẻ',
+
+                      // Action buttons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: onViewAnalysis,
+                            icon: const Icon(Icons.bolt),
+                            tooltip: 'Tóm tắt',
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: onSave,
+                            icon: Icon(
+                              isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            ),
+                            tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () {
+                              shareNewsLink(
+                                context: context,
+                                url: newsData.link ?? newsData.sourceUrl,
+                                title: newsData.title,
+                              );
+                            },
+                            icon: const Icon(Icons.ios_share),
+                            tooltip: 'Chia sẻ',
+                          ),
+                        ],
                       ),
                     ],
                   ),

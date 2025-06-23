@@ -1,195 +1,11 @@
-// import 'package:flutter/material.dart';
-// import 'package:genews/features/home/data/models/news_data_model.dart';
-// import 'package:genews/features/home/data/services/bookmarks_service.dart';
-// import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
-// import 'package:genews/features/home/presentation/widgets/news_card.dart';
-// import 'package:genews/features/shared/widgets/search_bar_widget.dart';
-//
-// class BookmarksScreen extends StatefulWidget {
-//   const BookmarksScreen({super.key});
-//
-//   @override
-//   State<BookmarksScreen> createState() => _BookmarksScreenState();
-// }
-//
-// class _BookmarksScreenState extends State<BookmarksScreen> {
-//   final BookmarksService _bookmarksService = BookmarksService();
-//   List<Result> _bookmarkedArticles = [];
-//   bool _isLoading = true;
-//   bool _isSearchActive = false;
-//   final TextEditingController _searchController = TextEditingController();
-//   String _searchQuery = '';
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadBookmarks();
-//   }
-//
-//   @override
-//   void dispose() {
-//     _searchController.dispose();
-//     super.dispose();
-//   }
-//
-//   Future<void> _loadBookmarks() async {
-//     setState(() {
-//       _isLoading = true;
-//     });
-//
-//     try {
-//       final bookmarks = await _bookmarksService.getSavedArticles();
-//       setState(() {
-//         _bookmarkedArticles = bookmarks;
-//         _isLoading = false;
-//       });
-//     } catch (e) {
-//       setState(() {
-//         _bookmarkedArticles = [];
-//         _isLoading = false;
-//       });
-//     }
-//   }
-//
-//   void _removeBookmark(Result article) async {
-//     await _bookmarksService.removeArticle(article);
-//     _loadBookmarks();
-//   }
-//
-//   void _toggleSearch() {
-//     setState(() {
-//       _isSearchActive = !_isSearchActive;
-//       if (!_isSearchActive) {
-//         _searchController.clear();
-//         _searchQuery = '';
-//       }
-//     });
-//   }
-//
-//   void _onSearchChanged(String query) {
-//     setState(() {
-//       _searchQuery = query;
-//     });
-//   }
-//
-//   void _clearSearch() {
-//     setState(() {
-//       _searchController.clear();
-//       _searchQuery = '';
-//     });
-//   }
-//
-//   List<Result> _getFilteredBookmarks() {
-//     if (_searchQuery.isEmpty) {
-//       return _bookmarkedArticles;
-//     }
-//
-//     final query = _searchQuery.toLowerCase();
-//     return _bookmarkedArticles.where((article) {
-//       final titleMatch = article.title?.toLowerCase().contains(query) ?? false;
-//       final descMatch = article.description?.toLowerCase().contains(query) ?? false;
-//       final sourceMatch = article.sourceName?.toLowerCase().contains(query) ?? false;
-//
-//       return titleMatch || descMatch || sourceMatch;
-//     }).toList();
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Tin đã lưu'),
-//         actions: [
-//           IconButton(
-//             icon: Icon(_isSearchActive ? Icons.search_off : Icons.search),
-//             onPressed: _toggleSearch,
-//           ),
-//           IconButton(
-//             icon: Icon(Icons.refresh),
-//             onPressed: _loadBookmarks,
-//             tooltip: 'Làm mới danh sách',
-//           ),
-//         ],
-//       ),
-//       body: Column(
-//         children: [
-//           if (_isSearchActive)
-//             NewsSearchBar(
-//               controller: _searchController,
-//               onChanged: _onSearchChanged,
-//               onClear: _clearSearch,
-//               hintText: 'Tìm kiếm trong tin đã lưu...',
-//             ),
-//
-//           Expanded(
-//             child: _isLoading
-//                 ? Center(child: CircularProgressIndicator())
-//                 : _buildBookmarksList(),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   Widget _buildBookmarksList() {
-//     final filteredBookmarks = _getFilteredBookmarks();
-//
-//     if (filteredBookmarks.isEmpty) {
-//       return Center(
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Icon(Icons.bookmark_border, size: 60, color: Colors.grey),
-//             SizedBox(height: 10),
-//             Text(
-//               _searchQuery.isNotEmpty
-//                   ? "Không tìm thấy tin phù hợp với tìm kiếm"
-//                   : "Bạn chưa lưu tin tức nào",
-//               style: TextStyle(fontSize: 18),
-//             ),
-//             if (_bookmarkedArticles.isEmpty && _searchQuery.isEmpty)
-//               Padding(
-//                 padding: const EdgeInsets.only(top: 10),
-//                 child: Text(
-//                   "Lưu tin tức để đọc sau bằng cách nhấn vào biểu tượng bookmark",
-//                   textAlign: TextAlign.center,
-//                   style: TextStyle(fontSize: 14, color: Colors.grey),
-//                 ),
-//               ),
-//           ],
-//         ),
-//       );
-//     }
-//
-//     return Padding(
-//       padding: const EdgeInsets.all(10),
-//       child: ListView.builder(
-//         itemCount: filteredBookmarks.length,
-//         itemBuilder: (context, index) {
-//           final article = filteredBookmarks[index];
-//           return NewsCard(
-//             newsData: article,
-//             onViewAnalysis: () {
-//               Navigator.push(
-//                 context,
-//                 MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: article)),
-//               );
-//             },
-//             onSave: () => _removeBookmark(article),
-//             isSaved: true,
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
 import 'package:flutter/material.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/data/services/bookmarks_service.dart';
 import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
 import 'package:genews/features/home/presentation/widgets/news_card.dart';
 import 'package:genews/features/home/presentation/widgets/category_bar.dart';
-import 'package:genews/features/shared/widgets/search_bar_widget.dart';
+import 'package:genews/shared/styles/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -198,7 +14,8 @@ class BookmarksScreen extends StatefulWidget {
   State<BookmarksScreen> createState() => _BookmarksScreenState();
 }
 
-class _BookmarksScreenState extends State<BookmarksScreen> {
+class _BookmarksScreenState extends State<BookmarksScreen>
+    with SingleTickerProviderStateMixin {
   final BookmarksService _bookmarksService = BookmarksService();
   List<Result> _bookmarkedArticles = [];
   bool _isLoading = true;
@@ -207,16 +24,65 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   String _searchQuery = '';
   String? selectedCategory;
   List<String> _availableCategories = [];
+  bool _isListView = true; // Toggle between list and grid view
+  late AnimationController _animationController;
+
+  // Category colors map
+  static final Map<String, List<Color>> _categoryColors = {
+    'business': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+    'crime': [Color(0xFFD32F2F), Color(0xFFEF5350)],
+    'domestic': [Color(0xFF1976D2), Color(0xFF2196F3)],
+    'education': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
+    'entertainment': [Color(0xFFE91E63), Color(0xFFF06292)],
+    'environment': [Color(0xFF388E3C), Color(0xFF66BB6A)],
+    'food': [Color(0xFFFF5722), Color(0xFFFF7043)],
+    'health': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
+    'lifestyle': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
+    'politics': [Color(0xFF5D4037), Color(0xFF8D6E63)],
+    'science': [Color(0xFF303F9F), Color(0xFF3F51B5)],
+    'sports': [Color(0xFFFF6F00), Color(0xFFFF9800)],
+    'technology': [Color(0xFF455A64), Color(0xFF607D8B)],
+    'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
+    'tourism': [Color(0xFF0097A7), Color(0xFF00BCD4)],
+    'world': [Color(0xFF512DA8), Color(0xFF673AB7)],
+    'other': [Color(0xFF616161), Color(0xFF757575)],
+  };
+
+  // Thêm map dịch category giống NewsCard
+  static final Map<String, String> _categoryTranslations = {
+    'business': 'Kinh doanh',
+    'crime': 'Tội phạm',
+    'domestic': 'Trong nước',
+    'education': 'Giáo dục',
+    'entertainment': 'Giải trí',
+    'environment': 'Môi trường',
+    'food': 'Ẩm thực',
+    'health': 'Sức khỏe',
+    'lifestyle': 'Đời sống',
+    'politics': 'Chính trị',
+    'science': 'Khoa học',
+    'sports': 'Thể thao',
+    'technology': 'Công nghệ',
+    'top': 'Nổi bật',
+    'tourism': 'Du lịch',
+    'world': 'Thế giới',
+    'other': 'Khác',
+  };
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
     _loadBookmarks();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -231,7 +97,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       // Extract unique categories from bookmarked articles
       final categorySet = <String>{};
       for (var article in bookmarks) {
-        if (article.category != null && article.category.toString().isNotEmpty) {
+        if (article.category != null &&
+            article.category.toString().isNotEmpty) {
           categorySet.add(article.category.toString());
         }
       }
@@ -240,9 +107,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         _bookmarkedArticles = bookmarks;
         _availableCategories = categorySet.toList()..sort();
         _isLoading = false;
-        // Reset category selection when reloading
         selectedCategory = null;
       });
+
+      _animationController.forward();
     } catch (e) {
       setState(() {
         _bookmarkedArticles = [];
@@ -265,6 +133,23 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   void _removeBookmark(Result article) async {
     await _bookmarksService.removeArticle(article);
     _loadBookmarks();
+
+    // Show snackbar
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã xóa khỏi danh sách lưu'),
+          duration: Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'Hoàn tác',
+            onPressed: () async {
+              await _bookmarksService.saveArticle(article);
+              _loadBookmarks();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   void _toggleSearch() {
@@ -291,15 +176,15 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 
   List<Result> _getFilteredBookmarks() {
-    // First filter by category
-    List<Result> categoryFiltered = selectedCategory == null
-        ? _bookmarkedArticles
-        : _bookmarkedArticles.where((article) {
-            String articleCategory = (article.category ?? '').toString().toLowerCase();
-            return articleCategory.contains(selectedCategory!.toLowerCase());
-          }).toList();
+    List<Result> categoryFiltered =
+        selectedCategory == null
+            ? _bookmarkedArticles
+            : _bookmarkedArticles.where((article) {
+              String articleCategory =
+                  (article.category ?? '').toString().toLowerCase();
+              return articleCategory.contains(selectedCategory!.toLowerCase());
+            }).toList();
 
-    // Then filter by search query
     if (_searchQuery.isEmpty) {
       return categoryFiltered;
     }
@@ -307,108 +192,669 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     final query = _searchQuery.toLowerCase();
     return categoryFiltered.where((article) {
       final titleMatch = article.title?.toLowerCase().contains(query) ?? false;
-      final descMatch = article.description?.toLowerCase().contains(query) ?? false;
-      final sourceMatch = article.sourceName?.toLowerCase().contains(query) ?? false;
+      final descMatch =
+          article.description?.toLowerCase().contains(query) ?? false;
+      final sourceMatch =
+          article.sourceName?.toLowerCase().contains(query) ?? false;
 
       return titleMatch || descMatch || sourceMatch;
     }).toList();
   }
 
+  List<Color> _getCategoryColors(String category) {
+    String cleanCategory =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+
+    if (_categoryColors.containsKey(cleanCategory)) {
+      return _categoryColors[cleanCategory]!;
+    }
+
+    for (var entry in _categoryColors.entries) {
+      if (cleanCategory.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    return [
+      AppColors.primaryColor.withOpacity(0.8),
+      AppColors.primaryColor.withOpacity(0.6),
+    ];
+  }
+
+  // Thêm method để dịch category sang tiếng Việt
+  String _translateCategory(String category) {
+    // Handle null case
+    if (category.isEmpty) return "Khác";
+
+    // Clean up category text and convert to lowercase for matching
+    String cleanCategory =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+
+    // Try to find exact match first
+    if (_categoryTranslations.containsKey(cleanCategory)) {
+      return _categoryTranslations[cleanCategory]!;
+    }
+
+    // If no exact match, look for partial matches
+    for (var entry in _categoryTranslations.entries) {
+      if (cleanCategory.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    // If no match found, capitalize first letter of each word
+    return cleanCategory
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+                  : word,
+        )
+        .join(' ');
+  }
+
+  // Thay thế method _buildSliverAppBar và search bar section
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryColor,
+      automaticallyImplyLeading: false,
+      elevation: 0,
+      actions: [
+        IconButton(
+          icon: Icon(
+            _isSearchActive ? Icons.search_off : Icons.search,
+            color: Colors.white,
+          ),
+          onPressed: _toggleSearch,
+        ),
+        IconButton(
+          icon: Icon(
+            _isListView ? Icons.grid_view : Icons.view_list,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            setState(() {
+              _isListView = !_isListView;
+            });
+          },
+          tooltip: _isListView ? 'Xem dạng lưới' : 'Xem dạng danh sách',
+        ),
+        IconButton(
+          icon: const Icon(Icons.notifications_none, color: Colors.white),
+          onPressed: () {},
+          tooltip: 'Thông báo',
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: EdgeInsets.zero,
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bookmark, color: Colors.white, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Tin đã lưu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryColor,
+                AppColors.primaryColor.withOpacity(0.9),
+                const Color(0xFF6A4C93),
+                const Color(0xFF9B59B6),
+              ],
+              stops: const [0.0, 0.3, 0.7, 1.0],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Tin đã lưu'),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearchActive ? Icons.search_off : Icons.search),
-            onPressed: _toggleSearch,
+      body: SafeArea(
+        child: Container(
+          color:
+              isDarkMode
+                  ? Colors.grey[900]
+                  : Colors.white, // Thêm màu nền container chính
+          child: CustomScrollView(
+            slivers: [
+              // App Bar
+              _buildSliverAppBar(),
+
+              // Search Bar
+              if (_isSearchActive)
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    color:
+                        isDarkMode
+                            ? Colors.grey[900]
+                            : Colors.white, // Màu nền search container
+                    child: Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color:
+                            isDarkMode
+                                ? Colors.grey[800]
+                                : Colors.grey[100], // Màu nền search field
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color:
+                              isDarkMode
+                                  ? Colors.grey[600]!
+                                  : Colors.grey[300]!,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                isDarkMode
+                                    ? Colors.black.withOpacity(0.3)
+                                    : Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        textAlignVertical:
+                            TextAlignVertical.center, // Fix text alignment
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm trong tin đã lưu...',
+                          hintStyle: TextStyle(
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 0, // Fix vertical padding
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                            size: 20,
+                          ),
+                          suffixIcon:
+                              _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                    icon: Icon(
+                                      Icons.clear,
+                                      size: 20,
+                                      color:
+                                          isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                    ),
+                                    onPressed: _clearSearch,
+                                  )
+                                  : null,
+                          isDense: true, // Reduce default padding
+                        ),
+                        onChanged: _onSearchChanged,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Category Bar
+              if (_availableCategories.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    color:
+                        isDarkMode
+                            ? Colors.grey[900]
+                            : Colors.white, // Màu nền category bar
+                    child: CategoryBar(
+                      availableCategories: _availableCategories,
+                      selectedCategory: selectedCategory,
+                      onCategorySelected: _onCategorySelected,
+                    ),
+                  ),
+                ),
+
+              // Statistics Section
+              if (!_isLoading && _bookmarkedArticles.isNotEmpty)
+                SliverToBoxAdapter(child: _buildStatisticsSection()),
+
+              // Content
+              _isLoading
+                  ? SliverToBoxAdapter(
+                    child: Container(
+                      height: 300,
+                      color: isDarkMode ? Colors.grey[900] : Colors.white,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  )
+                  : _buildBookmarksContent(),
+            ],
           ),
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _loadBookmarks,
-            tooltip: 'Làm mới danh sách',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatisticsSection() {
+    final filteredBookmarks = _getFilteredBookmarks();
+    final categoryStats = <String, int>{};
+
+    for (var article in _bookmarkedArticles) {
+      final category = article.category?.toString() ?? 'other';
+      categoryStats[category] = (categoryStats[category] ?? 0) + 1;
+    }
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color:
+            isDarkMode
+                ? Colors.grey[850]
+                : Colors.white, // Chỉnh màu nền theo dark mode
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color:
+                isDarkMode
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.grey.withOpacity(
+                      0.1,
+                    ), // Chỉnh shadow theo dark mode
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      body: Column(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_isSearchActive)
-            NewsSearchBar(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              onClear: _clearSearch,
-              hintText: 'Tìm kiếm trong tin đã lưu...',
-            ),
-
-          // Add CategoryBar with available categories from bookmarks
-          if (_availableCategories.isNotEmpty)
-            CategoryBar(
-              availableCategories: _availableCategories, // Pass available categories from bookmarks
-              selectedCategory: selectedCategory,
-              onCategorySelected: _onCategorySelected,
-            ),
-
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _buildBookmarksList(),
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined, color: AppColors.primaryColor),
+              const SizedBox(width: 8),
+              Text(
+                'Thống kê',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      isDarkMode
+                          ? Colors.white
+                          : Colors.black87, // Chỉnh màu text theo dark mode
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          if (selectedCategory != null || _searchQuery.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Hiển thị ${filteredBookmarks.length} / ${_bookmarkedArticles.length} bài viết',
+                style: TextStyle(
+                  color: AppColors.primaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  categoryStats.entries.take(3).map((entry) {
+                    final colors = _getCategoryColors(entry.key);
+                    final translatedCategory = _translateCategory(entry.key);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: colors),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$translatedCategory: ${entry.value}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildBookmarksList() {
+  // Cập nhật _buildBookmarksContent để có background phù hợp
+  Widget _buildBookmarksContent() {
     final filteredBookmarks = _getFilteredBookmarks();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (filteredBookmarks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bookmark_border, size: 60, color: Colors.grey),
-            SizedBox(height: 10),
-            Text(
-              _searchQuery.isNotEmpty
-                  ? "Không tìm thấy tin phù hợp với tìm kiếm"
-                  : selectedCategory != null
-                      ? "Không có tin tức nào trong chuyên mục này"
-                      : "Bạn chưa lưu tin tức nào",
-              style: TextStyle(fontSize: 18),
-            ),
-            if (_bookmarkedArticles.isEmpty && _searchQuery.isEmpty && selectedCategory == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  "Lưu tin tức để đọc sau bằng cách nhấn vào biểu tượng bookmark",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+      return SliverToBoxAdapter(
+        child: Container(
+          height: 400,
+          color: isDarkMode ? Colors.grey[900] : Colors.white, // Thêm màu nền
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _searchQuery.isNotEmpty || selectedCategory != null
+                      ? Icons.search_off
+                      : Icons.bookmark_border,
+                  size: 80,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                 ),
-              ),
-          ],
+                const SizedBox(height: 20),
+                Text(
+                  _searchQuery.isNotEmpty
+                      ? "Không tìm thấy tin phù hợp"
+                      : selectedCategory != null
+                      ? "Không có tin trong chuyên mục này"
+                      : "Chưa có tin tức nào được lưu",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _searchQuery.isNotEmpty
+                      ? "Thử tìm kiếm với từ khóa khác"
+                      : selectedCategory != null
+                      ? "Chọn chuyên mục khác hoặc bỏ chọn"
+                      : "Bắt đầu lưu tin tức yêu thích để đọc sau",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                if (_bookmarkedArticles.isEmpty &&
+                    _searchQuery.isEmpty &&
+                    selectedCategory == null) ...[
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.explore),
+                    label: const Text("Khám phá tin tức"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: ListView.builder(
-        itemCount: filteredBookmarks.length,
-        itemBuilder: (context, index) {
-          final article = filteredBookmarks[index];
-          return NewsCard(
-            newsData: article,
-            onViewAnalysis: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: article)),
+    return _isListView
+        ? _buildListView(filteredBookmarks)
+        : _buildGridView(filteredBookmarks);
+  }
+
+  // Cập nhật _buildListView để có background
+  Widget _buildListView(List<Result> articles) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return SliverToBoxAdapter(
+      child: Container(
+        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: articles.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final article = articles[index];
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: _animationController,
+                    curve: Interval(
+                      (index / articles.length) * 0.5,
+                      ((index + 1) / articles.length) * 0.5 + 0.5,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+                ),
+                child: NewsCard(
+                  newsData: article,
+                  onViewAnalysis: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => NewsAnalysisScreen(newsData: article),
+                      ),
+                    );
+                  },
+                  onSave: () => _removeBookmark(article),
+                  isSaved: true,
+                ),
               );
             },
-            onSave: () => _removeBookmark(article),
-            isSaved: true,
-          );
-        },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Cập nhật _buildGridView để có background
+  Widget _buildGridView(List<Result> articles) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return SliverToBoxAdapter(
+      child: Container(
+        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: articles.length,
+            itemBuilder: (context, index) {
+              final article = articles[index];
+              return _buildGridItem(article);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridItem(Result article) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NewsAnalysisScreen(newsData: article),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color:
+              isDarkMode
+                  ? Colors.grey[850]
+                  : Colors.white, // Chỉnh màu nền theo dark mode
+          boxShadow: [
+            BoxShadow(
+              color:
+                  isDarkMode
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.grey.withOpacity(
+                        0.1,
+                      ), // Chỉnh shadow theo dark mode
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: CachedNetworkImage(
+                  imageUrl: article.imageUrl ?? "",
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorWidget:
+                      (context, error, stackTrace) => Container(
+                        color:
+                            isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[300], // Chỉnh màu error widget
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color:
+                              isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600], // Chỉnh màu icon
+                        ),
+                      ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      article.title ?? "",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color:
+                            isDarkMode
+                                ? Colors.white
+                                : Colors.black87, // Chỉnh màu text title
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            article.sourceName ?? "",
+                            style: TextStyle(
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors
+                                          .grey[600], // Chỉnh màu text source
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _removeBookmark(article),
+                          child: Icon(
+                            Icons.bookmark,
+                            color: AppColors.primaryColor,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
