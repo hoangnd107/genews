@@ -74,6 +74,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
         title: Text("Điểm tin"),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _controller.reload(),
+          ),
+          IconButton(
             icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
             onPressed: _toggleSaved,
             tooltip: isSaved ? 'Bỏ lưu' : 'Lưu',
@@ -89,10 +93,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             },
             tooltip: 'Chia sẻ',
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload(),
-          ),
         ],
       ),
       body: Stack(
@@ -101,19 +101,18 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
           if (isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder:
-                  (context) => NewsAnalysisScreen(newsData: widget.newsData),
+              builder: (context) =>
+                  NewsAnalysisScreen(newsData: widget.newsData),
             ),
           );
         },
-        icon: const Icon(Icons.bolt),
-        label: const Text("Tóm tắt"),
         tooltip: 'Tóm tắt',
+        child: const Icon(Icons.bolt),
       ),
     );
   }
@@ -124,6 +123,25 @@ class NewsCard extends StatelessWidget {
   final VoidCallback onViewAnalysis;
   final VoidCallback onSave;
   final bool isSaved;
+  static final Map<String, String> _categoryTranslations = {
+    'business': 'Kinh doanh',
+    'crime': 'Tội phạm',
+    'domestic': 'Trong nước',
+    'education': 'Giáo dục',
+    'entertainment': 'Giải trí',
+    'environment': 'Môi trường',
+    'food': 'Ẩm thực',
+    'health': 'Sức khỏe',
+    'lifestyle': 'Đời sống',
+    'politics': 'Chính trị',
+    'science': 'Khoa học',
+    'sports': 'Thể thao',
+    'technology': 'Công nghệ',
+    'top': 'Nổi bật',
+    'tourism': 'Du lịch',
+    'world': 'Thế giới',
+    'other': 'Khác',
+  };
 
   const NewsCard({
     super.key,
@@ -132,6 +150,49 @@ class NewsCard extends StatelessWidget {
     required this.onSave,
     this.isSaved = false,
   });
+
+  String _translateCategory(dynamic category) {
+    // Handle null case
+    if (category == null) return "";
+
+    // If it's a list, extract the first category or join them
+    String categoryStr;
+    if (category is List<String>) {
+      if (category.isEmpty) return "";
+      categoryStr = category[0]; // Take first category from list
+    } else {
+      // It's already a string or something else that we can convert
+      categoryStr = category.toString();
+    }
+
+    if (categoryStr.isEmpty) return "";
+
+    // Clean up category text and convert to lowercase for matching
+    String cleanCategory = categoryStr
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .trim()
+        .toLowerCase();
+
+    // Try to find exact match first
+    if (_categoryTranslations.containsKey(cleanCategory)) {
+      return _categoryTranslations[cleanCategory]!;
+    }
+
+    // If no exact match, look for partial matches
+    for (var entry in _categoryTranslations.entries) {
+      if (cleanCategory.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    // If no match found, capitalize first letter of each word
+    return cleanCategory
+        .split(' ')
+        .map((word) => word.isNotEmpty
+        ? '${word[0].toUpperCase()}${word.substring(1)}'
+        : '')
+        .join(' ');
+  }
 
   String _formatPubDate(BuildContext context, DateTime? pubDateTime) {
     if (pubDateTime == null) {
@@ -226,6 +287,27 @@ class NewsCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (newsData.category != null)
+                        Expanded(
+                          child: RichText(
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: _translateCategory(newsData.category),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(child: SizedBox()),
                       IconButton(
                         onPressed: onViewAnalysis,
                         icon: const Icon(Icons.bolt),

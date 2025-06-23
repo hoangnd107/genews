@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:genews/core/enums.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/presentation/providers/news_provider.dart';
-import 'package:genews/features/home/presentation/widgets/news_summary_screen.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
 
@@ -28,7 +27,18 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Tóm tắc tin tức"), centerTitle: false),
+      appBar: AppBar(
+        title: Text("Tóm tắt tin tức"),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              // Handle notification tap
+            },
+          ),
+        ],
+      ),
       body: Consumer<NewsProvider>(
         builder: (context, newsState, child) {
           if (newsState.newsAnalysisState == ViewState.busy) {
@@ -68,8 +78,23 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen> {
               child: Column(
                 children: [
                   Text(widget.newsData.title ?? "", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Divider(),
                   const SizedBox(height: 8),
-                  buildSection("Nội dung tóm tắt", newsState.analysis),
+                  if (widget.newsData.imageUrl != null)
+                    Image.network(
+                      widget.newsData.imageUrl!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                    ),
+                  const SizedBox(height: 8),
+                  Divider(),
+                  const SizedBox(height: 10),
+                  // buildSection("Nội dung tóm tắt", newsState.analysis),
+                  Text(newsState.analysis, style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 10),
+                  Divider(),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -82,6 +107,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen> {
                       label: Text("Hỏi thêm về bài báo"),
                     ),
                   ),
+                  const SizedBox(height: 8),
                   Divider(),
                 ],
               ),

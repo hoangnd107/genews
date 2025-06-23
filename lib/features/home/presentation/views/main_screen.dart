@@ -86,8 +86,9 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Đã lưu',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
+              // icon: Icon(Icons.settings_outlined),
+              // activeIcon: Icon(Icons.settings),
+              icon: Icon(Icons.menu),
               label: 'Cài đặt',
             ),
           ],

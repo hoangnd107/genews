@@ -7,6 +7,8 @@ import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/data/services/bookmarks_service.dart';
+import 'package:genews/features/home/presentation/widgets/category_bar.dart';
+import 'package:genews/features/shared/widgets/search_bar_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,14 +20,33 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final BookmarksService _bookmarksService = BookmarksService();
   final Map<String, bool> _savedStates = {};
-  
+  String? selectedCategory;
+  bool _isSearchActive = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
-    _fetchNews();
+    _initFetchNews();
   }
 
-  _fetchNews() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  _initFetchNews() {
+    final newsProvider = context.read<NewsProvider>();
+    if (newsProvider.allNews.results == null ||
+        newsProvider.allNews.results!.isEmpty ||
+        newsProvider.newsViewState == ViewState.error) {
+      newsProvider.fetchNews();
+    }
+  }
+
+  _refreshNews() {
     context.read<NewsProvider>().fetchNews();
   }
 
@@ -46,10 +67,67 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleSave(Result article) async {
     final articleId = article.articleId ?? article.link ?? '';
     final isSaved = await _bookmarksService.toggleSave(article);
-    
+
     setState(() {
       _savedStates[articleId] = isSaved;
     });
+  }
+
+  void _onCategorySelected(String category) {
+    setState(() {
+      if (selectedCategory == category) {
+        selectedCategory = null;
+      } else {
+        selectedCategory = category;
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearchActive = !_isSearchActive;
+      if (!_isSearchActive) {
+        _searchController.clear();
+        _searchQuery = '';
+      }
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+    });
+  }
+
+  List<Result> _getFilteredNews(List<Result> allNews) {
+    // First filter by category
+    List<Result> categoryFiltered = selectedCategory == null
+      ? allNews
+      : allNews.where((article) {
+          String articleCategory = (article.category ?? '').toString().toLowerCase();
+          return articleCategory.contains(selectedCategory!.toLowerCase());
+        }).toList();
+
+    // Then filter by search query
+    if (_searchQuery.isEmpty) {
+      return categoryFiltered;
+    }
+
+    final query = _searchQuery.toLowerCase();
+    return categoryFiltered.where((article) {
+      final titleMatch = article.title?.toLowerCase().contains(query) ?? false;
+      final descMatch = article.description?.toLowerCase().contains(query) ?? false;
+      final sourceMatch = article.sourceName?.toLowerCase().contains(query) ?? false;
+
+      return titleMatch || descMatch || sourceMatch;
+    }).toList();
   }
 
   @override
@@ -70,17 +148,18 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              // Handle search functionality
-              // You can show search dialog or navigate to search screen
-            },
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshNews,
+            tooltip: 'Tải lại tin tức',
+          ),
+          IconButton(
+            icon: Icon(_isSearchActive ? Icons.search_off : Icons.search),
+            onPressed: _toggleSearch,
           ),
           IconButton(
             icon: Icon(Icons.notifications_none),
             onPressed: () {
               // Handle notification tap
-              // You can navigate to a notifications screen here
             },
           ),
         ],
@@ -91,15 +170,14 @@ class _HomeScreenState extends State<HomeScreen> {
           if (newsState.newsViewState == ViewState.busy) {
             return Center(child: CircularProgressIndicator());
           }
-          
-          final articles = newsState.allNews.results ?? [];
-          
-          // Load saved states when we have articles
-          if (articles.isNotEmpty) {
-            _loadSavedStates(articles);
+
+          final allArticles = newsState.allNews.results ?? [];
+
+          if (allArticles.isNotEmpty) {
+            _loadSavedStates(allArticles);
           }
-          
-          if (articles.isEmpty || newsState.newsViewState == ViewState.error) {
+
+          if (allArticles.isEmpty || newsState.newsViewState == ViewState.error) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -117,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: 20),
                   ElevatedButton.icon(
-                    onPressed: _fetchNews,
+                    onPressed: _refreshNews,
                     icon: Icon(Icons.refresh),
                     label: Text("Thử lại"),
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor),
@@ -127,28 +205,64 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(10),
-            child: ListView.builder(
-              itemCount: articles.length,
-              itemBuilder: (context, index) {
-                final data = articles[index];
-                final articleId = data.articleId ?? data.link ?? '';
-                final isSaved = _savedStates[articleId] ?? false;
-                
-                return NewsCard(
-                  newsData: data,
-                  onViewAnalysis: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: data)),
-                    );
-                  },
-                  onSave: () => _toggleSave(data),
-                  isSaved: isSaved, // Pass saved state to NewsCard
-                );
-              },
-            ),
+          final filteredArticles = _getFilteredNews(allArticles);
+
+          return Column(
+            children: [
+              if (_isSearchActive)
+                NewsSearchBar(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                  hintText: 'Tìm kiếm ...',
+                ),
+
+              // if (!_isSearchActive)
+              //   CategoryBar(
+              //     selectedCategory: selectedCategory,
+              //     onCategorySelected: _onCategorySelected,
+              //   ),
+
+              CategoryBar(
+                selectedCategory: selectedCategory,
+                onCategorySelected: _onCategorySelected,
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: filteredArticles.isEmpty
+                    ? Center(
+                        child: Text(
+                          _isSearchActive && _searchQuery.isNotEmpty
+                            ? "Không tìm thấy tin tức phù hợp với tìm kiếm"
+                            : "Không tìm thấy tin tức cho chuyên mục này",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredArticles.length,
+                        itemBuilder: (context, index) {
+                          final data = filteredArticles[index];
+                          final articleId = data.articleId ?? data.link ?? '';
+                          final isSaved = _savedStates[articleId] ?? false;
+
+                          return NewsCard(
+                            newsData: data,
+                            onViewAnalysis: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: data)),
+                              );
+                            },
+                            onSave: () => _toggleSave(data),
+                            isSaved: isSaved,
+                          );
+                        },
+                      ),
+                ),
+              ),
+            ],
           );
         },
       ),

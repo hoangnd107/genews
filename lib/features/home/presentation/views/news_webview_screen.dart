@@ -101,15 +101,15 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
         title: const Text("Điểm tin"),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _controller.reload(),
+          ),
+          IconButton(
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border),
             onPressed: () {
               _toggleBookmark();
             },
             tooltip: _isBookmarked ? 'Bỏ lưu' : 'Lưu',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload(),
           ),
         ],
       ),
@@ -122,7 +122,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
@@ -132,9 +132,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        icon: const Icon(Icons.bolt),
-        label: const Text("Tóm tắt"),
         tooltip: 'Tóm tắt',
+        child: const Icon(Icons.bolt),
       ),
     );
   }

@@ -9,9 +9,6 @@ import 'package:offline_first_support/offline_first.dart';
 abstract class NewsApiRepository {
   Future<NewsDataModel> fetchTrendingNews();
   Future<String> generateNewsAiAnalysis(String content);
-  Future<String> generateNewsAiSocialContents(String content);
-  Future<String> generateNewsAiVideoScript(String content);
-  Future<void> generateNewsAiVideo(String videoScript);
 }
 
 class NewsApiRepositoryImpl implements NewsApiRepository {
@@ -52,27 +49,9 @@ class NewsApiRepositoryImpl implements NewsApiRepository {
   @override
   Future<String> generateNewsAiAnalysis(String content) async {
     final prompt = """
-      Tạo một bản tóm tắt ngắn, phân loại và những hiểu biết chính cho tin tức xu hướng này: $content
-      Vui lòng trả về kết quả mà không cần định dạng **
+      Tạo một bản tóm tắt, thể loại và những thông tin chính cho tin tức xu hướng này: $content.
+      Lưu ý khi trả kết quả: Chỉ trả về nội dung, không thêm phản hồi cho yêu cầu này, không sử dụng định dạng **, cho phép dùng số và dấu "-" để phân tách các mục.
     """;
-    return await _generateContent(prompt);
-  }
-
-  @override
-  Future<String> generateNewsAiSocialContents(String content) async {
-    final prompt = "Generate a short social media post for this news: $content";
-    return await _generateContent(prompt);
-  }
-
-  @override
-  Future<void> generateNewsAiVideo(String videoScript) async {
-    // TODO: implement generateNewsAiVideo
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<String> generateNewsAiVideoScript(String content) async {
-    final prompt = "Generate a short video script for this news: $content";
     return await _generateContent(prompt);
   }
 }
