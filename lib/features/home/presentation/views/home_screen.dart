@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:genews/core/enums.dart';
 import 'package:genews/features/home/presentation/providers/news_provider.dart';
 import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
+import 'package:genews/features/home/presentation/views/news_webview_screen.dart' as webview; // Thêm import này
 import 'package:genews/features/home/presentation/widgets/news_card.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,8 @@ import 'package:genews/features/home/data/models/news_data_model.dart';
 import 'package:genews/features/home/data/services/bookmarks_service.dart';
 import 'package:genews/features/home/presentation/widgets/category_bar.dart';
 import 'package:genews/features/shared/widgets/search_bar_widget.dart';
+import 'package:carousel_slider/carousel_slider.dart'; // Thêm import này
+import 'package:cached_network_image/cached_network_image.dart'; // Thêm import này
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearchActive = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int _currentCarouselIndex = 0; // Thêm biến này
 
   @override
   void initState() {
@@ -109,11 +113,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Result> _getFilteredNews(List<Result> allNews) {
     // First filter by category
     List<Result> categoryFiltered = selectedCategory == null
-      ? allNews
-      : allNews.where((article) {
-          String articleCategory = (article.category ?? '').toString().toLowerCase();
-          return articleCategory.contains(selectedCategory!.toLowerCase());
-        }).toList();
+        ? allNews
+        : allNews.where((article) {
+      String articleCategory = (article.category ?? '').toString().toLowerCase();
+      return articleCategory.contains(selectedCategory!.toLowerCase());
+    }).toList();
 
     // Then filter by search query
     if (_searchQuery.isEmpty) {
@@ -128,6 +132,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
       return titleMatch || descMatch || sourceMatch;
     }).toList();
+  }
+
+  // Thêm function mở NewsWebViewScreen
+  void _openNewsWebView(Result article) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => webview.NewsWebViewScreen(
+          url: article.link ?? "",
+          title: article.title ?? "",
+          newsData: article,
+        ),
+      ),
+    );
+  }
+
+  // Thêm function mở NewsAnalysisScreen
+  void _openNewsAnalysis(Result article) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewsAnalysisScreen(newsData: article),
+      ),
+    );
   }
 
   @override
@@ -217,11 +245,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   hintText: 'Tìm kiếm ...',
                 ),
 
-              // if (!_isSearchActive)
-              //   CategoryBar(
-              //     selectedCategory: selectedCategory,
-              //     onCategorySelected: _onCategorySelected,
-              //   ),
+              // Thêm Carousel Slider
+              if (allArticles.isNotEmpty) ...[
+                _buildCarouselSection(allArticles),
+                const SizedBox(height: 10),
+              ],
 
               CategoryBar(
                 selectedCategory: selectedCategory,
@@ -232,40 +260,203 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   child: filteredArticles.isEmpty
-                    ? Center(
-                        child: Text(
-                          _isSearchActive && _searchQuery.isNotEmpty
-                            ? "Không tìm thấy tin tức phù hợp với tìm kiếm"
-                            : "Không tìm thấy tin tức cho chuyên mục này",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredArticles.length,
-                        itemBuilder: (context, index) {
-                          final data = filteredArticles[index];
-                          final articleId = data.articleId ?? data.link ?? '';
-                          final isSaved = _savedStates[articleId] ?? false;
-
-                          return NewsCard(
-                            newsData: data,
-                            onViewAnalysis: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => NewsAnalysisScreen(newsData: data)),
-                              );
-                            },
-                            onSave: () => _toggleSave(data),
-                            isSaved: isSaved,
-                          );
-                        },
-                      ),
+                      ? Center(
+                    child: Text(
+                      _isSearchActive && _searchQuery.isNotEmpty
+                          ? "Không tìm thấy tin tức phù hợp với tìm kiếm"
+                          : "Không tìm thấy tin tức cho chuyên mục này",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  )
+                      : _buildNewsList(filteredArticles),
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  // Thêm Widget cho Carousel Section
+  Widget _buildCarouselSection(List<Result> allArticles) {
+    final carouselArticles = allArticles.take(10).toList(); // Lấy 10 tin đầu tiên
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Tin nổi bật',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildCarouselSlider(carouselArticles),
+        ],
+      ),
+    );
+  }
+
+  // Thêm Widget cho Carousel Slider
+  Widget _buildCarouselSlider(List<Result> articles) {
+    return Column(
+      children: [
+        CarouselSlider.builder(
+          itemCount: articles.length,
+          itemBuilder: (context, index, realIndex) {
+            final article = articles[index];
+            return _buildCarouselItem(article);
+          },
+          options: CarouselOptions(
+            height: 200,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 5),
+            enlargeCenterPage: true,
+            viewportFraction: 0.9,
+            onPageChanged: (index, reason) {
+              setState(() {
+                _currentCarouselIndex = index;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Carousel indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: articles.asMap().entries.map((entry) {
+            return Container(
+              width: 8.0,
+              height: 8.0,
+              margin: const EdgeInsets.symmetric(horizontal: 4.0),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentCarouselIndex == entry.key
+                    ? AppColors.primaryColor
+                    : Colors.grey.shade400,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // Thêm Widget cho Carousel Item
+  Widget _buildCarouselItem(Result article) {
+    return GestureDetector(
+      onTap: () => _openNewsWebView(article),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: article.imageUrl ?? "",
+                fit: BoxFit.cover,
+                errorWidget: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported, size: 50),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      // ignore: deprecated_member_use
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      article.title ?? "Không có tiêu đề",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          article.sourceName ?? "",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          article.pubDate?.toString() ?? "",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Thêm Widget cho News List
+  Widget _buildNewsList(List<Result> filteredArticles) {
+    return ListView.builder(
+      itemCount: filteredArticles.length,
+      itemBuilder: (context, index) {
+        final data = filteredArticles[index];
+        final articleId = data.articleId ?? data.link ?? '';
+        final isSaved = _savedStates[articleId] ?? false;
+
+        return GestureDetector(
+          onTap: () => _openNewsWebView(data),
+          child: NewsCard(
+            newsData: data,
+            onViewAnalysis: () => _openNewsAnalysis(data),
+            onSave: () => _toggleSave(data),
+            isSaved: isSaved,
+          ),
+        );
+      },
     );
   }
 }
