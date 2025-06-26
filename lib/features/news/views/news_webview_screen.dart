@@ -3,6 +3,7 @@ import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
+import 'package:genews/shared/utils/share_utils.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;
@@ -26,6 +27,164 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
   bool _isBookmarked = false;
   final BookmarksService _bookmarksService = BookmarksService();
 
+  // Danh sách các domain quảng cáo phổ biến
+  static const List<String> _adBlockList = [
+    'doubleclick.net',
+    'googleadservices.com',
+    'googlesyndication.com',
+    'google-analytics.com',
+    'googletagmanager.com',
+    'facebook.com/tr',
+    'facebook.net',
+    'amazon-adsystem.com',
+    'adsystem.com',
+    'ads.yahoo.com',
+    'bing.com/search',
+    'outbrain.com',
+    'taboola.com',
+    'addthis.com',
+    'sharethis.com',
+    'scorecardresearch.com',
+    'quantserve.com',
+    'hotjar.com',
+    'mouseflow.com',
+    'crazyegg.com',
+    'adsystem',
+    'adnxs.com',
+    'adsystem.com',
+    'pubmatic.com',
+    'rubiconproject.com',
+    'openx.net',
+    'adsystem.net',
+    'advertising.com',
+    'ads.twitter.com',
+    'analytics.twitter.com',
+    'ads.linkedin.com',
+    'ads.pinterest.com',
+    'ads.tiktok.com',
+    'adform.net',
+    'adsrvr.org',
+    'amazon-advertising.com',
+    'criteo.com',
+    'adsystem.com',
+    'turn.com',
+    'rlcdn.com',
+    'serving-sys.com',
+    'moatads.com',
+    'adsystem.com',
+    'adroll.com',
+    'adsystem.com',
+    'casalemedia.com',
+    'contextweb.com',
+    'exponential.com',
+    'indexww.com',
+    'sharethrough.com',
+    'sovrn.com',
+    'spotxchange.com',
+    'springserve.com',
+    'teads.tv',
+    'tidaltv.com',
+    'undertone.com',
+    'yieldmo.com',
+    'ads.google.com',
+    'www.googletagservices.com',
+    'pagead2.googlesyndication.com',
+    'tpc.googlesyndication.com',
+    'googleads.g.doubleclick.net',
+    'static.doubleclick.net',
+    'stats.g.doubleclick.net',
+    'cm.g.doubleclick.net',
+    'ad.doubleclick.net',
+    'ads30.adnxs.com',
+    'ib.adnxs.com',
+    'secure.adnxs.com',
+    'nym1-ib.adnxs.com',
+    'prg-ib.adnxs.com',
+    'sin1-ib.adnxs.com',
+    'lax1-ib.adnxs.com',
+    'ams1-ib.adnxs.com',
+  ];
+
+  // JavaScript để ẩn quảng cáo
+  static const String _adBlockingScript = '''
+    (function() {
+      // Ẩn các element có class hoặc id liên quan đến quảng cáo
+      const adSelectors = [
+        '[id*="ad"]', '[class*="ad"]', '[id*="banner"]', '[class*="banner"]',
+        '[id*="popup"]', '[class*="popup"]', '[id*="sponsor"]', '[class*="sponsor"]',
+        '.advertisement', '.ads', '.adsbygoogle', '.ad-container', '.ad-banner',
+        '.banner-ad', '.google-ad', '.fb-ad', '.twitter-ad', '.linkedin-ad',
+        '.promo', '.promotional', '.marketing', '.commercial',
+        'iframe[src*="ads"]', 'iframe[src*="doubleclick"]', 'iframe[src*="google"]',
+        'div[data-ad]', 'div[data-ads]', 'section[data-ad]',
+        '.outbrain', '.taboola', '.content-ads', '.sidebar-ads',
+        '.header-ads', '.footer-ads', '.inline-ads', '.video-ads',
+        '.native-ads', '.display-ads', '.banner-ads', '.popup-ads',
+        '.interstitial', '.overlay-ad', '.floating-ad', '.sticky-ad'
+      ];
+      
+      function removeAds() {
+        adSelectors.forEach(selector => {
+          try {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+              if (el && el.parentNode) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.height = '0px';
+                el.style.width = '0px';
+                el.remove();
+              }
+            });
+          } catch(e) {
+            console.log('Error removing ads:', e);
+          }
+        });
+        
+        // Xóa các script tag có chứa quảng cáo
+        const scripts = document.querySelectorAll('script');
+        scripts.forEach(script => {
+          const src = script.src || '';
+          const content = script.innerHTML || '';
+          if (src.includes('ads') || src.includes('doubleclick') || 
+              content.includes('adsystem') || content.includes('googletag')) {
+            script.remove();
+          }
+        });
+      }
+      
+      // Chạy ngay lập tức
+      removeAds();
+      
+      // Chạy khi DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', removeAds);
+      }
+      
+      // Chạy sau khi trang load xong
+      window.addEventListener('load', removeAds);
+      
+      // Theo dõi thay đổi DOM và xóa quảng cáo mới
+      const observer = new MutationObserver(function(mutations) {
+        let shouldRemoveAds = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            shouldRemoveAds = true;
+          }
+        });
+        if (shouldRemoveAds) {
+          setTimeout(removeAds, 100);
+        }
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    })();
+  ''';
+
   @override
   void initState() {
     super.initState();
@@ -43,97 +202,397 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             setState(() {
               isLoading = false;
             });
+            _injectAdBlockingScript();
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('Lỗi: ${error.description}');
+          },
+          onNavigationRequest: (NavigationRequest request) {
+            final uri = Uri.parse(request.url);
+            final domain = uri.host.toLowerCase();
+            
+            for (String blockedDomain in _adBlockList) {
+              if (domain.contains(blockedDomain.toLowerCase())) {
+                debugPrint('🚫 Blocked ad domain: $domain');
+                return NavigationDecision.prevent;
+              }
+            }
+            
+            final url = request.url.toLowerCase();
+            final adKeywords = [
+              '/ads/', '/ad/', '/banner/', '/popup/', '/sponsor/',
+              'advertisement', 'adsystem', 'adservice', 'adserver',
+              'doubleclick', 'googlesyndication', 'googleadservices',
+              'outbrain', 'taboola', 'addthis', 'sharethis'
+            ];
+            
+            for (String keyword in adKeywords) {
+              if (url.contains(keyword)) {
+                debugPrint('🚫 Blocked ad URL: ${request.url}');
+                return NavigationDecision.prevent;
+              }
+            }
+            
+            return NavigationDecision.navigate;
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.url));
   }
 
+  void _injectAdBlockingScript() async {
+    try {
+      await _controller.runJavaScript(_adBlockingScript);
+      debugPrint('✅ Ad blocking script injected successfully');
+      
+      await Future.delayed(const Duration(seconds: 2));
+      await _controller.runJavaScript(_adBlockingScript);
+      
+      await Future.delayed(const Duration(seconds: 3));
+      await _controller.runJavaScript(_adBlockingScript);
+    } catch (e) {
+      debugPrint('❌ Error injecting ad blocking script: $e');
+    }
+  }
+
   void _checkIfBookmarked() async {
-    final isSaved = await _bookmarksService.isArticleSaved(
-        (widget.newsData.articleId ?? "") as Result);
-    if (mounted) {
-      setState(() {
-        _isBookmarked = isSaved;
-      });
+    try {
+      final isSaved = await _bookmarksService.isArticleSaved(widget.newsData);
+      if (mounted) {
+        setState(() {
+          _isBookmarked = isSaved;
+        });
+      }
+    } catch (e) {
+      debugPrint('Lỗi khi kiểm tra bookmark: $e');
+      if (mounted) {
+        setState(() {
+          _isBookmarked = false;
+        });
+      }
     }
   }
 
   void _toggleBookmark() async {
-    bool successfullyToggled;
-    String message;
+    try {
+      bool newBookmarkState;
+      String message;
 
-    if (_isBookmarked) {
-      successfullyToggled =
-      await _bookmarksService.removeArticle((widget.newsData.articleId ?? "") as Result);
-      message = successfullyToggled ? 'Đã bỏ lưu' : 'Lỗi khi bỏ lưu';
-    } else {
-      successfullyToggled =
-      await _bookmarksService.saveArticle(widget.newsData);
-      message = successfullyToggled
-          ? 'Đã lưu'
-          : 'Tin tức này đã được lưu trước đó hoặc có lỗi';
+      if (_isBookmarked) {
+        final success = await _bookmarksService.removeArticle(widget.newsData);
+        newBookmarkState = !success;
+        message = success ? 'Đã bỏ lưu tin tức' : 'Lỗi khi bỏ lưu tin tức';
+      } else {
+        final success = await _bookmarksService.saveArticle(widget.newsData);
+        newBookmarkState = success;
+        message = success ? 'Đã lưu tin tức' : 'Lỗi khi lưu tin tức';
+      }
+
+      if (mounted) {
+        setState(() {
+          _isBookmarked = newBookmarkState;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(message),
+              ],
+            ),
+            backgroundColor: _isBookmarked ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Lỗi khi toggle bookmark: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Có lỗi xảy ra. Vui lòng thử lại.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
+  }
 
-    if (successfullyToggled) {
-      setState(() {
-        _isBookmarked = !_isBookmarked;
-      });
-    }
+  void _shareNews() {
+    shareNewsLink(
+      context: context,
+      url: widget.url,
+      title: widget.title,
+    );
+  }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 2),
+  void _showNotifications() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.notifications, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text('Chức năng thông báo đang được phát triển'),
+          ],
         ),
-      );
-    }
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _reloadAndBlockAds() {
+    _controller.reload();
+    Future.delayed(const Duration(seconds: 1), () {
+      _injectAdBlockingScript();
+    });
+    
+    // Hiển thị thông báo đang tải lại
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.refresh, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text('Đang tải lại và chặn quảng cáo...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _blockAdsManually() {
+    _injectAdBlockingScript();
+    
+    // Hiển thị thông báo
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.block, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text('Đang chặn quảng cáo...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Điểm tin"),
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+        foregroundColor: isDarkMode ? Colors.white : Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload(),
-          ),
-          IconButton(
-            icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border),
-            onPressed: () {
-              _toggleBookmark();
+          PopupMenuButton<String>(
+            color: isDarkMode ? Colors.grey[800] : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 8,
+            onSelected: (value) {
+              switch (value) {
+                case 'refresh':
+                  _reloadAndBlockAds();
+                  break;
+                case 'notifications':
+                  _showNotifications();
+                  break;
+                case 'block_ads':
+                  _blockAdsManually();
+                  break;
+                case 'share':
+                  _shareNews();
+                  break;
+                case 'bookmark':
+                  _toggleBookmark();
+                  break;
+              }
             },
-            tooltip: _isBookmarked ? 'Bỏ lưu' : 'Lưu',
+            itemBuilder: (context) => [
+              // Tải lại trang
+              PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Tải lại trang',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Thông báo
+              PopupMenuItem(
+                value: 'notifications',
+                child: Row(
+                  children: [
+                    const Icon(Icons.notifications_outlined, size: 20, color: Colors.purple),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Thông báo',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Divider
+              PopupMenuItem(
+                enabled: false,
+                child: Divider(
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                  height: 1,
+                ),
+              ),
+              
+              // Chặn quảng cáo
+              PopupMenuItem(
+                value: 'block_ads',
+                child: Row(
+                  children: [
+                    const Icon(Icons.block, size: 20, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Chặn quảng cáo',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Chia sẻ
+              PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    const Icon(Icons.ios_share, size: 20, color: Colors.blue),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Chia sẻ tin tức',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Bookmark
+              PopupMenuItem(
+                value: 'bookmark',
+                child: Row(
+                  children: [
+                    Icon(
+                      _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      size: 20,
+                      color: _isBookmarked ? Colors.orange : (isDarkMode ? Colors.white : Colors.black87),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _isBookmarked ? 'Bỏ lưu' : 'Lưu tin tức',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: const Icon(Icons.more_vert),
+            ),
           ),
+          
+          const SizedBox(width: 8),
         ],
       ),
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
           if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
+            Container(
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.7)
+                  : Colors.white.withOpacity(0.7),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Đang tải nội dung...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '🚫 Đang chặn quảng cáo...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  NewsAnalysisScreen(newsData: widget.newsData),
+              builder: (context) => NewsAnalysisScreen(newsData: widget.newsData),
             ),
           );
         },
         tooltip: 'Tóm tắt',
-        child: const Icon(Icons.bolt, color: Colors.orange),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.bolt),
+        label: const Text(
+          'Tóm tắt',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
