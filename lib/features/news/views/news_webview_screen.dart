@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:genews/features/home/data/models/news_data_model.dart';
-import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
+import 'package:genews/features/news/data/models/news_data_model.dart';
+import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:genews/features/home/data/services/bookmarks_service.dart';
+import 'package:genews/shared/services/bookmarks_service.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;

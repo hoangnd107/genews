@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:genews/features/home/data/models/news_data_model.dart';
+import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BookmarksService {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:genews/features/home/presentation/providers/news_provider.dart';
-import 'package:genews/features/home/presentation/providers/settings_provider.dart';
-import 'package:genews/features/home/presentation/views/main_screen.dart';
+import 'package:genews/features/news/providers/news_provider.dart';
+import 'package:genews/features/settings/providers/settings_provider.dart';
+import 'package:genews/features/main/views/main_screen.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:offline_first_support/offline_first.dart';
 import 'package:provider/provider.dart';

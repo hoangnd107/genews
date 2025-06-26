@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:genews/features/home/presentation/providers/settings_provider.dart';
+import 'package:genews/features/settings/providers/settings_provider.dart';
 import 'package:genews/shared/styles/colors.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -24,7 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            _buildSliverAppBar(),
+            _buildSliverAppBar(isDarkMode),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSliverAppBar() {
+  Widget _buildSliverAppBar(bool isDarkMode) {
     return SliverAppBar(
       floating: true,
       pinned: true,
@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.help_outline, color: Colors.white),
-          onPressed: () {},
+          onPressed: () => _showContactBottomSheet(context, isDarkMode),
           tooltip: 'Trợ giúp',
         ),
       ],

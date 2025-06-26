@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:genews/features/home/presentation/views/bookmarks_screen.dart';
-import 'package:genews/features/home/presentation/views/home_screen.dart';
-import 'package:genews/features/home/presentation/views/discover_screen.dart';
-import 'package:genews/features/home/presentation/views/settings_screen.dart';
+import 'package:genews/features/bookmarks/views/bookmarks_screen.dart';
+import 'package:genews/features/news/views/home_screen.dart';
+import 'package:genews/features/news/views/discover_screen.dart';
+import 'package:genews/features/settings/views/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

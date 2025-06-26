@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:genews/features/home/data/models/news_data_model.dart';
-import 'package:genews/features/home/data/services/bookmarks_service.dart';
-import 'package:genews/features/home/presentation/views/news_summary_screen.dart';
-import 'package:genews/features/home/presentation/widgets/news_card.dart';
-import 'package:genews/features/home/presentation/widgets/category_bar.dart';
+import 'package:genews/features/news/data/models/news_data_model.dart';
+import 'package:genews/shared/services/bookmarks_service.dart';
+import 'package:genews/features/analysis/views/news_summary_screen.dart';
+import 'package:genews/features/news/widgets/news_card.dart';
+import 'package:genews/features/news/widgets/category_bar.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:genews/features/home/data/utils/share_utils.dart';
+import 'package:genews/shared/utils/share_utils.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});

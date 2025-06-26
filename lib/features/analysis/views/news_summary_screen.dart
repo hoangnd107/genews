@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:genews/core/enums.dart';
-import 'package:genews/features/home/data/models/news_data_model.dart';
-import 'package:genews/features/home/presentation/providers/news_provider.dart';
+import 'package:genews/features/news/data/models/news_data_model.dart';
+import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:genews/features/home/data/utils/share_utils.dart';
-import 'package:genews/features/home/presentation/views/news_webview_screen.dart';
+import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/features/news/views/news_webview_screen.dart';
 
 class NewsAnalysisScreen extends StatefulWidget {
   final Result newsData;
