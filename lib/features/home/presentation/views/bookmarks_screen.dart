@@ -6,6 +6,7 @@ import 'package:genews/features/home/presentation/widgets/news_card.dart';
 import 'package:genews/features/home/presentation/widgets/category_bar.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:genews/features/home/data/utils/share_utils.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -579,7 +580,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // Cập nhật _buildBookmarksContent để có background phù hợp
+  // Cập nhật _buildBookmarksContent để phù hợp với logic mới
   Widget _buildBookmarksContent() {
     final filteredBookmarks = _getFilteredBookmarks();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -588,7 +589,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       return SliverToBoxAdapter(
         child: Container(
           height: 400,
-          color: isDarkMode ? Colors.grey[900] : Colors.white, // Thêm màu nền
+          color: isDarkMode ? Colors.grey[900] : Colors.white,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -652,13 +653,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       );
     }
 
+    // ĐẢO NGƯỢC LOGIC để giống HomeScreen
     return _isListView
-        ? _buildListView(filteredBookmarks)
-        : _buildGridView(filteredBookmarks);
+        ? _buildBookmarksListView(filteredBookmarks) // Danh sách dạng dòng
+        : _buildBookmarksGridView(filteredBookmarks); // Lưới (NewsCard)
   }
 
-  // Cập nhật _buildListView để có background
-  Widget _buildListView(List<Result> articles) {
+  // CẬP NHẬT _buildListView thành _buildBookmarksGridView (sử dụng NewsCard)
+  Widget _buildBookmarksGridView(List<Result> articles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return SliverToBoxAdapter(
@@ -709,8 +711,8 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // Cập nhật _buildGridView để có background
-  Widget _buildGridView(List<Result> articles) {
+  // THÊM _buildBookmarksListView mới (dạng dòng ngang tương tự HomeScreen)
+  Widget _buildBookmarksListView(List<Result> articles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return SliverToBoxAdapter(
@@ -718,19 +720,32 @@ class _BookmarksScreenState extends State<BookmarksScreen>
         color: isDarkMode ? Colors.grey[900] : Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: GridView.builder(
+          child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.7,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
             itemCount: articles.length,
+            separatorBuilder: (context, index) => Divider(
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+              height: 1,
+            ),
             itemBuilder: (context, index) {
               final article = articles[index];
-              return _buildGridItem(article);
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: _animationController,
+                    curve: Interval(
+                      (index / articles.length) * 0.5,
+                      ((index + 1) / articles.length) * 0.5 + 0.5,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+                ),
+                child: _buildListRowItem(article, true), // isSaved = true
+              );
             },
           ),
         ),
@@ -738,7 +753,8 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  Widget _buildGridItem(Result article) {
+  // THÊM method _buildListRowItem tương tự HomeScreen
+  Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
@@ -751,105 +767,192 @@ class _BookmarksScreenState extends State<BookmarksScreen>
         );
       },
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color:
-              isDarkMode
-                  ? Colors.grey[850]
-                  : Colors.white, // Chỉnh màu nền theo dark mode
-          boxShadow: [
-            BoxShadow(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.3)
-                      : Colors.grey.withOpacity(
-                        0.1,
-                      ), // Chỉnh shadow theo dark mode
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: isDarkMode ? Colors.grey[900] : Colors.white,
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: article.imageUrl ?? "",
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorWidget:
-                      (context, error, stackTrace) => Container(
-                        color:
-                            isDarkMode
-                                ? Colors.grey[700]
-                                : Colors.grey[300], // Chỉnh màu error widget
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color:
-                              isDarkMode
-                                  ? Colors.grey[400]
-                                  : Colors.grey[600], // Chỉnh màu icon
-                        ),
-                      ),
+            // Ảnh bên trái
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: article.imageUrl ?? "",
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorWidget: (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    size: 30,
+                  ),
                 ),
               ),
             ),
+
+            const SizedBox(width: 12),
+
+            // Nội dung chính
             Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      article.title ?? "",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color:
-                            isDarkMode
-                                ? Colors.white
-                                : Colors.black87, // Chỉnh màu text title
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    article.title ?? "Không có tiêu đề",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      height: 1.3,
                     ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            article.sourceName ?? "",
-                            style: TextStyle(
-                              color:
-                                  isDarkMode
-                                      ? Colors.grey[400]
-                                      : Colors
-                                          .grey[600], // Chỉnh màu text source
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Pub Date và Category
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          _formatTime(article.pubDate),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        GestureDetector(
-                          onTap: () => _removeBookmark(article),
-                          child: Icon(
-                            Icons.bookmark,
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _translateCategory(article.category?.toString() ?? ''),
+                          style: TextStyle(
+                            fontSize: 10,
                             color: AppColors.primaryColor,
-                            size: 20,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Icon menu 3 chấm
+            SizedBox(
+              height: 80,
+              child: Center(
+                child: PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    size: 20,
+                  ),
+                  color: isDarkMode ? Colors.grey[800] : Colors.white,
+                  elevation: 8,
+                  offset: const Offset(-10, 0),
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem<String>(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.ios_share,
+                            size: 18,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Chia sẻ',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'analysis',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bolt,
+                            size: 18,
+                            color: Colors.orange,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tóm tắt',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'remove',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bookmark_remove,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Bỏ lưu',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
+                  onSelected: (String value) {
+                    switch (value) {
+                      case 'share':
+                        _shareArticle(article);
+                        break;
+                      case 'analysis':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NewsAnalysisScreen(newsData: article),
+                          ),
+                        );
+                        break;
+                      case 'remove':
+                        _removeBookmark(article);
+                        break;
+                    }
+                  },
                 ),
               ),
             ),
@@ -857,5 +960,31 @@ class _BookmarksScreenState extends State<BookmarksScreen>
         ),
       ),
     );
+  }
+
+  // THÊM method chia sẻ
+  void _shareArticle(Result article) {
+    shareNewsLink(context: context, url: article.link, title: article.title);
+  }
+
+  // THÊM method format time
+  String _formatTime(DateTime? pubDate) {
+    if (pubDate == null) return "Vừa xong";
+
+    try {
+      final Duration difference = DateTime.now().difference(pubDate);
+
+      if (difference.inMinutes < 60) {
+        return "${difference.inMinutes} phút trước";
+      } else if (difference.inHours < 24) {
+        return "${difference.inHours} giờ trước";
+      } else if (difference.inDays < 7) {
+        return "${difference.inDays} ngày trước";
+      } else {
+        return "${pubDate.day}/${pubDate.month}/${pubDate.year}";
+      }
+    } catch (e) {
+      return "Vừa xong";
+    }
   }
 }

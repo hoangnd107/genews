@@ -836,7 +836,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                               onPressed: () => _openNewsAnalysis(article),
                               icon: const Icon(
                                 Icons.bolt,
-                                color: Colors.white,
+                                color: Colors.orange,
                                 size: 20,
                               ),
                               tooltip: 'Tóm tắt',

@@ -133,7 +133,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
           );
         },
         tooltip: 'Tóm tắt',
-        child: const Icon(Icons.bolt),
+        child: const Icon(Icons.bolt, color: Colors.orange),
       ),
     );
   }

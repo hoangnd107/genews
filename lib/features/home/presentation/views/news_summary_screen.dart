@@ -187,7 +187,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.bolt, color: Colors.white, size: 18),
+                  child: const Icon(Icons.bolt, color: Colors.orange, size: 18),
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -299,21 +299,12 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  "AI đang phân tích...",
+                  "Đang tạo bản tóm tắt...",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black87,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Đang tạo bản tóm tắt",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -528,42 +519,6 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 16),
-
-                // Action Button Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _openOriginalArticle,
-                      icon: const Icon(
-                        Icons.open_in_new,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        "Mở bài viết",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        elevation: 2,
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -621,7 +576,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  "Tóm tắt thông minh",
+                  "Nội dung tóm tắt",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -662,41 +617,6 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
   Widget _buildActionButtons(String analysis, bool isDarkMode) {
     return Column(
       children: [
-        // Primary Action Button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Tính năng sẽ có trong phiên bản tiếp theo'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            icon: const Icon(Icons.chat, color: Colors.white),
-            label: const Text(
-              "Hỏi thêm về bài báo",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Secondary Actions
         Row(
           children: [
             Expanded(
