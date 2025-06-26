@@ -9,6 +9,7 @@ import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart'
     as webview;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:genews/shared/utils/share_utils.dart';
 
 class CategoryNewsScreen extends StatefulWidget {
   final String category;
@@ -35,7 +36,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   String _searchQuery = '';
   List<Result> _filteredArticles = [];
   bool _isSearchActive = false;
-  bool _isListView = true; // Thêm toggle view mode
+  bool _isListView = true; // true = danh sách dạng dòng, false = lưới (NewsCard)
 
   @override
   void initState() {
@@ -154,6 +155,32 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     _performSearch('');
   }
 
+  // Thêm method share article
+  void _shareArticle(Result article) {
+    shareNewsLink(context: context, url: article.link, title: article.title);
+  }
+
+  // Thêm method format time
+  String _formatTime(DateTime? pubDate) {
+    if (pubDate == null) return "Vừa xong";
+
+    try {
+      final Duration difference = DateTime.now().difference(pubDate);
+
+      if (difference.inMinutes < 60) {
+        return "${difference.inMinutes} phút trước";
+      } else if (difference.inHours < 24) {
+        return "${difference.inHours} giờ trước";
+      } else if (difference.inDays < 7) {
+        return "${difference.inDays} ngày trước";
+      } else {
+        return "${pubDate.day}/${pubDate.month}/${pubDate.year}";
+      }
+    } catch (e) {
+      return "Vừa xong";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -161,10 +188,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          color:
-              isDarkMode
-                  ? Colors.grey[900]
-                  : Colors.white, // Thêm màu nền container chính
+          color: isDarkMode ? Colors.grey[900] : Colors.white,
           child: Consumer<NewsProvider>(
             builder: (context, newsState, child) {
               return CustomScrollView(
@@ -177,30 +201,20 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     SliverToBoxAdapter(
                       child: Container(
                         padding: const EdgeInsets.all(16.0),
-                        color:
-                            isDarkMode
-                                ? Colors.grey[900]
-                                : Colors.white, // Màu nền search container
+                        color: isDarkMode ? Colors.grey[900] : Colors.white,
                         child: Container(
                           height: 45,
                           decoration: BoxDecoration(
-                            color:
-                                isDarkMode
-                                    ? Colors.grey[800]
-                                    : Colors.grey[100], // Màu nền search field
+                            color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                             borderRadius: BorderRadius.circular(25),
                             border: Border.all(
-                              color:
-                                  isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!,
+                              color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    isDarkMode
-                                        ? Colors.black.withOpacity(0.3)
-                                        : Colors.black.withOpacity(0.05),
+                                color: isDarkMode
+                                    ? Colors.black.withOpacity(0.3)
+                                    : Colors.black.withOpacity(0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -212,45 +226,33 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                             style: TextStyle(
                               color: isDarkMode ? Colors.white : Colors.black87,
                             ),
-                            textAlignVertical:
-                                TextAlignVertical.center, // Fix text alignment
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
-                              hintText:
-                                  'Tìm kiếm trong ${widget.categoryDisplayName}...',
+                              hintText: 'Tìm kiếm trong ${widget.categoryDisplayName}...',
                               hintStyle: TextStyle(
-                                color:
-                                    isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                               ),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
-                                vertical: 0, // Fix vertical padding
+                                vertical: 0,
                               ),
                               prefixIcon: Icon(
                                 Icons.search,
-                                color:
-                                    isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                                 size: 20,
                               ),
-                              suffixIcon:
-                                  _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                        icon: Icon(
-                                          Icons.clear,
-                                          size: 20,
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.grey[400]
-                                                  : Colors.grey[600],
-                                        ),
-                                        onPressed: _clearSearch,
-                                      )
-                                      : null,
-                              isDense: true, // Reduce default padding
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        size: 20,
+                                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                      ),
+                                      onPressed: _clearSearch,
+                                    )
+                                  : null,
+                              isDense: true,
                             ),
                             onChanged: _onSearchChanged,
                             onSubmitted: _performSearch,
@@ -272,13 +274,11 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      // expandedHeight: 180, // Giảm từ 200 xuống 180
       floating: false,
       pinned: true,
-      backgroundColor:
-          widget.categoryColors.isNotEmpty
-              ? widget.categoryColors[0]
-              : Colors.blue,
+      backgroundColor: widget.categoryColors.isNotEmpty
+          ? widget.categoryColors[0]
+          : Colors.blue,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
@@ -303,10 +303,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
           },
           tooltip: _isListView ? 'Xem dạng lưới' : 'Xem dạng danh sách',
         ),
-        // IconButton(
-        //   icon: const Icon(Icons.refresh, color: Colors.white),
-        //   onPressed: _refreshNews,
-        // ),
         IconButton(
           icon: const Icon(Icons.notifications_none, color: Colors.white),
           onPressed: () {},
@@ -349,21 +345,19 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors:
-                  widget.categoryColors.length >= 4
-                      ? widget.categoryColors
-                      : [
-                        widget.categoryColors.isNotEmpty
-                            ? widget.categoryColors[0]
-                            : Colors.blue,
-                        widget.categoryColors.length > 1
-                            ? widget.categoryColors[1]
-                            : Colors.blue[300]!,
-                      ],
-              stops:
-                  widget.categoryColors.length >= 4
-                      ? const [0.0, 0.3, 0.7, 1.0]
-                      : const [0.0, 1.0],
+              colors: widget.categoryColors.length >= 4
+                  ? widget.categoryColors
+                  : [
+                      widget.categoryColors.isNotEmpty
+                          ? widget.categoryColors[0]
+                          : Colors.blue,
+                      widget.categoryColors.length > 1
+                          ? widget.categoryColors[1]
+                          : Colors.blue[300]!,
+                    ],
+              stops: widget.categoryColors.length >= 4
+                  ? const [0.0, 0.3, 0.7, 1.0]
+                  : const [0.0, 1.0],
             ),
           ),
         ),
@@ -371,7 +365,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     );
   }
 
-  // Cập nhật _buildContent để có background phù hợp
   Widget _buildContent(NewsProvider newsState) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -431,10 +424,9 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     icon: const Icon(Icons.refresh),
                     label: const Text("Tải lại"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          widget.categoryColors.isNotEmpty
-                              ? widget.categoryColors[0]
-                              : Colors.blue,
+                      backgroundColor: widget.categoryColors.isNotEmpty
+                          ? widget.categoryColors[0]
+                          : Colors.blue,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -475,10 +467,9 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     children: [
                       Icon(
                         Icons.search,
-                        color:
-                            widget.categoryColors.isNotEmpty
-                                ? widget.categoryColors[0]
-                                : Colors.blue,
+                        color: widget.categoryColors.isNotEmpty
+                            ? widget.categoryColors[0]
+                            : Colors.blue,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -486,10 +477,9 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                         child: Text(
                           '${_filteredArticles.length} kết quả cho "$_searchQuery"',
                           style: TextStyle(
-                            color:
-                                widget.categoryColors.isNotEmpty
-                                    ? widget.categoryColors[0]
-                                    : Colors.blue,
+                            color: widget.categoryColors.isNotEmpty
+                                ? widget.categoryColors[0]
+                                : Colors.blue,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -500,8 +490,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // Content based on view mode
-              _isListView ? _buildListView() : _buildGridView(),
+              // Content based on view mode - ĐẢO NGƯỢC LOGIC như DiscoverScreen
+              _isListView 
+                  ? _buildListViewContent() // Danh sách dạng dòng
+                  : _buildGridViewContent(), // Lưới (NewsCard)
             ],
           ),
         ),
@@ -509,51 +501,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     );
   }
 
-  Widget _buildListView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Featured article (first article with special layout)
-        if (_filteredArticles.isNotEmpty) ...[
-          _buildFeaturedArticle(_filteredArticles.first),
-          const SizedBox(height: 24),
-        ],
-
-        // Other articles
-        if (_filteredArticles.length > 1) ...[
-          Text(
-            _searchQuery.isNotEmpty ? 'Kết quả khác' : 'Tin tức khác',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredArticles.length - 1,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final article =
-                  _filteredArticles[index + 1]; // Skip first article
-              final articleId = article.articleId ?? article.link ?? '';
-              final isSaved = _savedStates[articleId] ?? false;
-
-              return GestureDetector(
-                onTap: () => _openNewsWebView(article),
-                child: NewsCard(
-                  newsData: article,
-                  onViewAnalysis: () => _openNewsAnalysis(article),
-                  onSave: () => _toggleSave(article),
-                  isSaved: isSaved,
-                ),
-              );
-            },
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildGridView() {
+  // THAY ĐỔI: _buildListView thành _buildListViewContent (dạng dòng ngang)
+  Widget _buildListViewContent() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -564,312 +515,240 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        GridView.builder(
+        ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.7,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
           itemCount: _filteredArticles.length,
+          separatorBuilder: (context, index) => Divider(
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+            height: 1,
+          ),
           itemBuilder: (context, index) {
             final article = _filteredArticles[index];
             final articleId = article.articleId ?? article.link ?? '';
             final isSaved = _savedStates[articleId] ?? false;
 
-            return _buildGridItem(article, isSaved);
+            return _buildListRowItem(article, isSaved);
           },
         ),
       ],
     );
   }
 
-  Widget _buildGridItem(Result article, bool isSaved) {
+  // THAY ĐỔI: _buildGridView thành _buildGridViewContent (sử dụng NewsCard)
+  Widget _buildGridViewContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _searchQuery.isNotEmpty
+              ? '${_filteredArticles.length} kết quả'
+              : 'Tất cả tin tức',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _filteredArticles.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final article = _filteredArticles[index];
+            final articleId = article.articleId ?? article.link ?? '';
+            final isSaved = _savedStates[articleId] ?? false;
+
+            return GestureDetector(
+              onTap: () => _openNewsWebView(article),
+              child: NewsCard(
+                newsData: article,
+                onViewAnalysis: () => _openNewsAnalysis(article),
+                onSave: () => _toggleSave(article),
+                isSaved: isSaved,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // THÊM METHOD MỚI cho list row item tương tự DiscoverScreen
+  Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () => _openNewsWebView(article),
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: isDarkMode ? Colors.grey[850] : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color:
-                  isDarkMode
-                      ? Colors.black.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: isDarkMode ? Colors.grey[900] : Colors.white,
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: article.imageUrl ?? "",
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorWidget:
-                      (context, error, stackTrace) => Container(
-                        color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color:
-                              isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                      ),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      article.title ?? "",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            article.sourceName ?? "",
-                            style: TextStyle(
-                              color:
-                                  isDarkMode
-                                      ? Colors.grey[400]
-                                      : Colors.grey[600],
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: () => _openNewsAnalysis(article),
-                              child: const Icon(
-                                Icons.bolt,
-                                color: Colors.orange,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () => _toggleSave(article),
-                              child: Icon(
-                                isSaved
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                color:
-                                    widget.categoryColors.isNotEmpty
-                                        ? widget.categoryColors[0]
-                                        : Colors.blue,
-                                size: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeaturedArticle(Result article) {
-    return GestureDetector(
-      onTap: () => _openNewsWebView(article),
-      child: Container(
-        height: 250,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
+            // Ảnh bên trái
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
                 imageUrl: article.imageUrl ?? "",
+                width: 80,
+                height: 80,
                 fit: BoxFit.cover,
-                errorWidget:
-                    (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image_not_supported, size: 50),
-                    ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                errorWidget: (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
               ),
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+            ),
+
+            const SizedBox(width: 12),
+
+            // Nội dung chính
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    article.title ?? "",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  decoration: BoxDecoration(
-                    color:
-                        widget.categoryColors.isNotEmpty
-                            ? widget.categoryColors[0]
-                            : Colors.blue,
-                    borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: 4),
+                  Text(
+                    article.description ?? "",
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Icon(widget.categoryIcon, size: 16, color: Colors.white),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'TIN NỔI BẬT',
+                      Expanded(
+                        child: Text(
+                          article.sourceName ?? "",
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _formatTime(article.pubDate),
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min, // Thêm để tránh overflow
-                  children: [
-                    Text(
-                      article.title ?? "",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18, // Giảm từ 20 xuống 18
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6), // Giảm từ 8 xuống 6
-                    Text(
-                      article.description ?? "",
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13, // Giảm từ 14 xuống 13
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6), // Giảm từ 8 xuống 6
-                    Row(
-                      children: [
-                        Expanded(
-                          // Wrap với Expanded
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              article.sourceName ?? "",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(width: 8),
+
+            // Icon menu 3 chấm
+            SizedBox(
+              height: 80,
+              child: Center(
+                child: PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    size: 20,
+                  ),
+                  color: isDarkMode ? Colors.grey[800] : Colors.white,
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'share':
+                        _shareArticle(article);
+                        break;
+                      case 'summary':
+                        _openNewsAnalysis(article);
+                        break;
+                      case 'bookmark':
+                        _toggleSave(article);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.ios_share,
+                            size: 20,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Chia sẻ',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
                             ),
                           ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () => _openNewsAnalysis(article),
-                              icon: const Icon(
-                                Icons.bolt,
-                                color: Colors.orange,
-                                size: 20,
-                              ),
-                              tooltip: 'Tóm tắt',
-                              constraints:
-                                  const BoxConstraints(), // Giảm padding
-                              padding: const EdgeInsets.all(4),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'summary',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bolt,
+                            size: 20,
+                            color: Colors.orange,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Tóm tắt',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
                             ),
-                            IconButton(
-                              onPressed: () => _toggleSave(article),
-                              icon: Icon(
-                                (_savedStates[article.articleId ??
-                                            article.link ??
-                                            ''] ??
-                                        false)
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              tooltip: 'Lưu',
-                              constraints:
-                                  const BoxConstraints(), // Giảm padding
-                              padding: const EdgeInsets.all(4),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'bookmark',
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            size: 20,
+                            color: isSaved ? Colors.blue : (isDarkMode ? Colors.white : Colors.black87),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            isSaved ? 'Bỏ lưu' : 'Lưu',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -879,12 +758,11 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => webview.NewsWebViewScreen(
-              url: article.link ?? "",
-              title: article.title ?? "",
-              newsData: article,
-            ),
+        builder: (context) => webview.NewsWebViewScreen(
+          url: article.link ?? "",
+          title: article.title ?? "",
+          newsData: article,
+        ),
       ),
     );
   }
