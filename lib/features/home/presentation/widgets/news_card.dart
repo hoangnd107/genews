@@ -112,7 +112,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
           );
         },
         tooltip: 'Tóm tắt',
-        child: const Icon(Icons.bolt),
+        child: const Icon(Icons.bolt, color: Colors.orange),
       ),
     );
   }
@@ -312,7 +312,7 @@ class NewsCard extends StatelessWidget {
                         children: [
                           IconButton(
                             onPressed: onViewAnalysis,
-                            icon: const Icon(Icons.bolt),
+                            icon: const Icon(Icons.bolt, color: Colors.orange),
                             tooltip: 'Tóm tắt',
                           ),
                           const SizedBox(width: 4),

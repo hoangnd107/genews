@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isSearchActive = false;
   String _searchQuery = '';
   int _currentCarouselIndex = 0;
-  bool _isListView = false; // Mặc định là false (grid view)
+  bool _isListView = true;
   bool _isSearching = false;
   List<Result> _searchResults = [];
 
