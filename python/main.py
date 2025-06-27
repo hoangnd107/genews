@@ -1,9 +1,9 @@
 import threading
 import logging
 
-from api_fetcher import main as api_main
-from rss_fetcher import main as rss_main
-from selenium_fetcher import main as selenium_main
+from fetcher.api_fetcher import main as api_main
+from fetcher.rss_fetcher import main as rss_main
+from fetcher.selenium_fetcher import main as selenium_main
 
 
 def safe_run(fetcher_func, name):
