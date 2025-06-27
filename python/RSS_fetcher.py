@@ -1,446 +1,359 @@
 import feedparser
 import requests
-from bs4 import BeautifulSoup
+import hashlib
 import json
-from datetime import datetime
-import firebase_admin
-from firebase_admin import credentials, firestore
+import logging
 import os
+import re
 import sys
-from dotenv import load_dotenv
 import time
 import traceback
-import re
+import argparse
+from bs4 import BeautifulSoup
+from datetime import datetime
+from dotenv import load_dotenv
 from urllib.parse import urljoin, urlparse
-import hashlib
+from typing import List, Dict, Any, Optional, Tuple
 
-class VnExpressRSSFetcher:
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# --- Configuration ---
+# Centralized configuration for easier management
+VNEXPRESS_CONFIG = {
+    "source_id": "vnexpress",
+    "source_name": "VnExpress",
+    "base_rss_url": "https://vnexpress.net/rss",
+    "base_url": "https://vnexpress.net",
+    "favicon": "https://vnexpress.net/favicon.ico",
+    "language": "vi",
+    "country": ["VN"],
+    "creator": ["VnExpress"],
+    "content_selectors": [
+        '.fck_detail',
+        '.content_detail',
+        '.Normal',
+        'article .content',
+        '.article-content'
+    ],
+    "categories": {
+        'trang-chu': 'Trang chủ',
+        'the-gioi': 'Thế giới',
+        'thoi-su': 'Thời sự',
+        'kinh-doanh': 'Kinh doanh',
+        'startup': 'Startup',
+        'giai-tri': 'Giải trí',
+        'the-thao': 'Thể thao',
+        'phap-luat': 'Pháp luật',
+        'giao-duc': 'Giáo dục',
+        'tin-moi-nhat': 'Tin mới nhất',
+        'tin-noi-bat': 'Tin nổi bật',
+        'suc-khoe': 'Sức khỏe',
+        'doi-song': 'Đời sống',
+        'du-lich': 'Du lịch',
+        'so-hoa': 'Khoa học công nghệ',
+        'oto-xe-may': 'Xe',
+        'y-kien': 'Ý kiến',
+        'tam-su': 'Tâm sự',
+        'cuoi': 'Cười',
+        'tin-xem-nhieu': 'Tin xem nhiều'
+    }
+}
+
+
+class RSSFetcher:
+    """
+    Fetches, parses, and stores articles from VnExpress RSS feeds into Firestore.
+    """
+
     def __init__(self):
-        # Load environment variables from .env file in project root
+        """Initializes the fetcher, configuration, and services."""
+        self._setup_logging()
+        self._load_config()
+        self._init_firebase()
+        self._init_session()
+
+    def _setup_logging(self):
+        """Configures the logging format and level."""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            stream=sys.stdout,
+        )
+
+    def _load_config(self):
+        """Loads configuration from .env and the config dictionary."""
         env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
         load_dotenv(env_path)
-        
-        # Get configuration from environment variables
-        self.news_collection = os.getenv('NEWS_COLLECTION', 'news_data')
+
         self.articles_collection = os.getenv('ARTICLES_COLLECTION', 'articles')
-        
-        # VnExpress RSS configuration
-        self.base_rss_url = "https://vnexpress.net/rss"
-        self.categories = {
-            'trang-chu': 'Trang chủ',
-            'the-gioi': 'Thế giới', 
-            'thoi-su': 'Thời sự',
-            'kinh-doanh': 'Kinh doanh',
-            'startup': 'Startup',
-            'giai-tri': 'Giải trí',
-            'the-thao': 'Thể thao',
-            'phap-luat': 'Pháp luật',
-            'giao-duc': 'Giáo dục',
-            'tin-moi-nhat': 'Tin mới nhất',
-            'tin-noi-bat': 'Tin nổi bật',
-            'suc-khoe': 'Sức khỏe',
-            'doi-song': 'Đời sống',
-            'du-lich': 'Du lịch',
-            'so-hoa': 'Khoa học công nghệ',
-            'oto-xe-may': 'Xe',
-            'y-kien': 'Ý kiến',
-            'tam-su': 'Tâm sự',
-            'cuoi': 'Cười',
-            'tin-xem-nhieu': 'Tin xem nhiều'
-        }
-        
-        # Initialize Firebase
+        self.summary_collection = os.getenv('NEWS_COLLECTION', 'news_data')
+        self.config = VNEXPRESS_CONFIG
+
+    def _init_firebase(self):
+        """Initializes the Firebase Admin SDK."""
         service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
         if not service_account_path:
-            raise ValueError("FIREBASE_SERVICE_ACCOUNT_PATH environment variable is required")
-        
-        # Convert relative path to absolute path
-        if not os.path.isabs(service_account_path):
-            service_account_path = os.path.join(os.path.dirname(__file__), '..', service_account_path)
-        
-        if not os.path.exists(service_account_path):
-            raise FileNotFoundError(f"Service account file not found: {service_account_path}")
-        
+            raise ValueError("FIREBASE_SERVICE_ACCOUNT_PATH is not set in .env file")
+
+        abs_path = service_account_path
+        if not os.path.isabs(abs_path):
+            abs_path = os.path.join(os.path.dirname(__file__), '..', abs_path)
+
+        if not os.path.exists(abs_path):
+            raise FileNotFoundError(f"Service account file not found: {abs_path}")
+
         if not firebase_admin._apps:
-            cred = credentials.Certificate(service_account_path)
+            cred = credentials.Certificate(abs_path)
             firebase_admin.initialize_app(cred)
-        
         self.db = firestore.client()
-        
-        # Session for HTTP requests
+        logging.info("Firebase initialized successfully.")
+
+    def _init_session(self):
+        """Initializes a requests session with a user-agent."""
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
-    
-    def generate_article_id(self, link):
-        """Generate a unique article ID from the link"""
+        logging.info("Requests session initialized.")
+
+    def _generate_article_id(self, link: str) -> str:
+        """Generates a unique article ID from the link using MD5 hash."""
         return hashlib.md5(link.encode()).hexdigest()
-    
-    def extract_image_from_description(self, description):
-        """Extract image URL from the description CDATA"""
+
+    def _extract_image_from_description(self, description: str) -> Optional[str]:
+        """Extracts the first image URL from the description's HTML."""
         try:
             soup = BeautifulSoup(description, 'html.parser')
             img_tag = soup.find('img')
-            if img_tag and img_tag.get('src'):
-                return img_tag['src']
+            return img_tag['src'] if img_tag and img_tag.get('src') else None
         except Exception as e:
-            print(f"   ⚠️  Error extracting image: {e}")
-        return None
-    
-    def extract_description_text(self, description):
-        """Extract clean text from the description CDATA"""
+            logging.warning(f"Could not extract image from description: {e}")
+            return None
+
+    def _extract_description_text(self, description: str) -> str:
+        """Extracts and cleans the text from the description's HTML."""
         try:
             soup = BeautifulSoup(description, 'html.parser')
-            # Remove image tag and get text
-            for img in soup.find_all('img'):
-                img.decompose()
-            for br in soup.find_all('br'):
-                br.replace_with(' ')
-            text = soup.get_text().strip()
-            return text if text else None
+            for tag in soup.find_all(['img', 'br']):
+                tag.decompose()
+            return soup.get_text(separator=' ', strip=True) or "No description available."
         except Exception as e:
-            print(f"   ⚠️  Error extracting description: {e}")
-        return description
-    
-    def scrape_full_article_content(self, url):
-        """Scrape full article content from the article page"""
+            logging.warning(f"Could not extract clean description text: {e}")
+            return description
+
+    def _parse_rss_date(self, date_string: str) -> str:
+        """Parses RSS date string to ISO 8601 format."""
         try:
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Find article content (VnExpress specific selectors)
-            content_selectors = [
-                '.fck_detail',
-                '.content_detail',
-                '.Normal',
-                'article .content',
-                '.article-content'
-            ]
-            
-            content = None
-            for selector in content_selectors:
-                content_div = soup.select_one(selector)
-                if content_div:
-                    # Remove ads and unwanted elements
-                    for unwanted in content_div.find_all(['script', 'style', '.ads', '.advertisement']):
-                        unwanted.decompose()
-                    
-                    content = content_div.get_text().strip()
-                    break
-            
-            return content if content else "Content not available"
-            
-        except Exception as e:
-            print(f"   ⚠️  Error scraping content from {url}: {e}")
-            return "Content not available"
-    
-    def extract_keywords_from_content(self, title, description):
-        """Extract basic keywords from title and description"""
-        try:
-            text = f"{title} {description}".lower()
-            # Simple keyword extraction - you can enhance this
-            common_words = ['và', 'của', 'cho', 'với', 'từ', 'trong', 'về', 'là', 'có', 'được', 'tại', 'theo', 'để', 'này', 'đã', 'sẽ', 'một', 'những', 'các', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']
-            words = re.findall(r'\b\w+\b', text)
-            keywords = [word for word in words if len(word) > 3 and word not in common_words]
-            return list(set(keywords))[:10]  # Return top 10 unique keywords
-        except:
-            return []
-    
-    def parse_rss_date(self, date_string):
-        """Parse RSS date string to ISO format"""
-        try:
-            # VnExpress uses format like "Sun, 22 Jun 2025 22:07:14 +0700"
+            # Format: "Sun, 22 Jun 2025 22:07:14 +0700"
             dt = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S %z")
             return dt.isoformat()
-        except Exception as e:
-            print(f"   ⚠️  Error parsing date {date_string}: {e}")
+        except (ValueError, TypeError):
+            logging.warning(f"Could not parse date '{date_string}', using current time.")
             return datetime.now().isoformat()
-    
-    def fetch_rss_category(self, category_slug, category_name):
-        """Fetch articles from a specific RSS category"""
-        try:
-            if category_slug == 'trang-chu':
-                rss_url = f"{self.base_rss_url}.rss"
-            else:
-                rss_url = f"{self.base_rss_url}/{category_slug}.rss"
-            
-            print(f"   📡 Fetching RSS: {rss_url}")
-            
-            # Parse RSS feed
-            feed = feedparser.parse(rss_url)
-            
-            if not feed.entries:
-                print(f"   📭 No entries found in {category_name}")
-                return []
-            
-            print(f"   ✅ Found {len(feed.entries)} articles in {category_name}")
-            
-            articles = []
-            for entry in feed.entries:
-                try:
-                    # Generate unique article ID
-                    article_id = self.generate_article_id(entry.link)
-                    
-                    # Extract image from description
-                    image_url = self.extract_image_from_description(entry.get('description', ''))
-                    
-                    # Clean description text
-                    description = self.extract_description_text(entry.get('description', ''))
-                    
-                    # Extract keywords
-                    keywords = self.extract_keywords_from_content(entry.title, description)
-                    
-                    # Parse publication date
-                    pub_date = self.parse_rss_date(entry.get('published', ''))
-                    
-                    # Create article in the same format as news_fetcher.py
-                    article = {
-                        'article_id': article_id,
-                        'title': entry.title,
-                        'link': entry.link,
-                        'keywords': keywords,
-                        'creator': ['VnExpress'],
-                        'video_url': None,
-                        'description': description,
-                        'content': 'CONTENT_TO_BE_SCRAPED',  # Will be scraped separately if needed
-                        'pubDate': pub_date,
-                        'pubDateTZ': 'Asia/Ho_Chi_Minh',
-                        'image_url': image_url,
-                        'source_id': 'vnexpress',
-                        'source_priority': 1,
-                        'source_name': 'VnExpress',
-                        'source_url': 'https://vnexpress.net',
-                        'source_icon': 'https://vnexpress.net/favicon.ico',
-                        'language': 'vi',
-                        'country': ['VN'],
-                        'category': [category_name],
-                        'ai_tag': 'RSS_PARSED',
-                        'sentiment': 'NEUTRAL',
-                        'sentiment_stats': 'NOT_ANALYZED',
-                        'ai_region': 'VIETNAM',
-                        'ai_org': 'VNEXPRESS',
-                        'duplicate': False,
-                        'created_at': datetime.now().isoformat(),
-                        'updated_at': datetime.now().isoformat(),
-                        'rss_category': category_slug,
-                        'rss_category_name': category_name
-                    }
-                    
-                    articles.append(article)
-                    
-                except Exception as e:
-                    print(f"   ⚠️  Error processing article in {category_name}: {e}")
-                    continue
-            
-            return articles
-            
-        except Exception as e:
-            print(f"   ❌ Error fetching RSS for {category_name}: {e}")
+
+    def _parse_rss_entry(self, entry: Dict[str, Any], category_slug: str, category_name: str) -> Dict[str, Any]:
+        """Parses a single feedparser entry into a structured article dictionary."""
+        link = entry.get('link')
+        title = entry.get('title', 'No Title')
+        description_html = entry.get('description', '')
+
+        description_text = self._extract_description_text(description_html)
+
+        return {
+            'article_id': self._generate_article_id(link),
+            'title': title,
+            'link': link,
+            'keywords': [],  # Keywords can be generated later if needed
+            'creator': self.config['creator'],
+            'video_url': None,
+            'description': description_text,
+            'content': 'CONTENT_TO_BE_SCRAPED',
+            'pubDate': self._parse_rss_date(entry.get('published')),
+            'image_url': self._extract_image_from_description(description_html),
+            'source_id': self.config['source_id'],
+            'source_name': self.config['source_name'],
+            'source_url': self.config['base_url'],
+            'source_icon': self.config['favicon'],
+            'language': self.config['language'],
+            'country': self.config['country'],
+            'category': [category_name],
+            'ai_tag': 'RSS_PARSED',
+            'sentiment': 'NEUTRAL',
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'rss_category_slug': category_slug,
+        }
+
+    def fetch_rss_category(self, category_slug: str, category_name: str) -> List[Dict[str, Any]]:
+        """Fetches and parses all articles from a specific RSS category."""
+        rss_url = f"{self.config['base_rss_url']}/{category_slug}.rss"
+        if category_slug == 'trang-chu':
+            rss_url = f"{self.config['base_rss_url']}.rss"
+
+        logging.info(f"Fetching RSS from: {rss_url}")
+        feed = feedparser.parse(rss_url)
+
+        if feed.bozo:
+            logging.warning(f"Feed for '{category_name}' is ill-formed. Bozo reason: {feed.bozo_exception}")
+
+        if not feed.entries:
+            logging.info(f"No entries found in '{category_name}' feed.")
             return []
-    
-    def save_articles_to_firestore(self, articles, category_name):
-        """Save articles to Firestore"""
-        try:
-            if not articles:
-                print(f"   ⚠️  No articles to save for {category_name}")
-                return 0, 0
-            
-            print(f"   💾 Saving {len(articles)} articles from {category_name}...")
-            
-            articles_saved = 0
-            articles_skipped = 0
-            
-            # Save articles in batch (Firestore batch limit is 500)
-            batch_size = 500
-            
-            for i in range(0, len(articles), batch_size):
-                batch = self.db.batch()
-                batch_articles = articles[i:i + batch_size]
-                batch_has_items = False
-                
-                for article in batch_articles:
-                    article_ref = self.db.collection(self.articles_collection).document(article['article_id'])
-                    
-                    # Check if article already exists
-                    existing_doc = article_ref.get()
-                    if existing_doc.exists:
-                        articles_skipped += 1
-                        continue
-                    
-                    # Article doesn't exist, add to batch
-                    batch.set(article_ref, article)
-                    articles_saved += 1
-                    batch_has_items = True
-                
-                # Only commit if there are documents to save
-                if batch_has_items:
-                    batch.commit()
-                
-                if len(articles) > batch_size:
-                    print(f"   📦 Processed batch {(i//batch_size)+1} for {category_name}")
-            
-            print(f"   ✅ {category_name}: Saved {articles_saved} new articles, skipped {articles_skipped} existing")
-            return articles_saved, articles_skipped
-            
-        except Exception as e:
-            print(f"   ❌ Error saving {category_name} to Firestore: {e}")
+
+        logging.info(f"Found {len(feed.entries)} articles in '{category_name}'.")
+
+        articles = []
+        for entry in feed.entries:
+            try:
+                if 'link' in entry and 'title' in entry:
+                    articles.append(self._parse_rss_entry(entry, category_slug, category_name))
+            except Exception as e:
+                logging.error(f"Error processing an article in '{category_name}': {e}")
+        return articles
+
+    def save_articles_to_firestore(self, articles: List[Dict[str, Any]], category_name: str) -> Tuple[int, int]:
+        """Saves a list of articles to Firestore, skipping duplicates."""
+        if not articles:
             return 0, 0
-    
-    def fetch_all_categories(self):
-        """Fetch news from all RSS categories"""
-        print("="*70)
-        print("🚀 STARTING VNEXPRESS RSS FETCH PROCESS")
-        print("Fetching from all RSS categories")
-        print("="*70)
-        
-        start_time = datetime.now()
+
+        logging.info(f"Saving {len(articles)} articles from '{category_name}' to Firestore...")
         total_articles_saved = 0
         total_articles_skipped = 0
-        all_articles_sample = []
-        categories_processed = 0
         
-        for category_slug, category_name in self.categories.items():
-            categories_processed += 1
-            print(f"\n📂 Processing category {categories_processed}/{len(self.categories)}: {category_name}")
+        for i in range(0, len(articles), 500):  # Firestore batch limit is 500
+            batch = self.db.batch()
+            batch_articles = articles[i:i + 500]
             
+            writes_in_this_batch = 0
+            for article in batch_articles:
+                article_ref = self.db.collection(self.articles_collection).document(article['article_id'])
+                # This check is inefficient but preserves original behavior minus the bug.
+                # It performs one read operation per article.
+                if not article_ref.get().exists:
+                    batch.set(article_ref, article)
+                    writes_in_this_batch += 1
+                else:
+                    total_articles_skipped += 1
+            
+            # Only commit if there are actual writes in this specific batch
+            if writes_in_this_batch > 0:
+                batch.commit()
+                logging.info(f"Committed a batch of {writes_in_this_batch} new articles for '{category_name}'.")
+                total_articles_saved += writes_in_this_batch
+
+        logging.info(f"'{category_name}': Saved {total_articles_saved} new, skipped {total_articles_skipped} existing.")
+        return total_articles_saved, total_articles_skipped
+
+    def fetch_all_categories(self) -> bool:
+        """Iterates through all categories, fetches, and saves articles."""
+        logging.info("🚀 STARTING VNEXPRESS RSS FETCH PROCESS")
+        start_time = time.time()
+        total_saved = 0
+        total_skipped = 0
+        
+        categories = self.config['categories']
+        for i, (slug, name) in enumerate(categories.items(), 1):
+            logging.info(f"--- Processing category {i}/{len(categories)}: {name} ---")
             try:
-                # Fetch articles from this category
-                articles = self.fetch_rss_category(category_slug, category_name)
-                
+                articles = self.fetch_rss_category(slug, name)
                 if articles:
-                    # Save articles to Firestore
-                    saved, skipped = self.save_articles_to_firestore(articles, category_name)
-                    total_articles_saved += saved
-                    total_articles_skipped += skipped
-                    
-                    # Keep sample for main document (first 50 articles)
-                    for article in articles[:min(50 - len(all_articles_sample), len(articles))]:
-                        if len(all_articles_sample) < 50:
-                            all_articles_sample.append(article)
-                
-                # Add delay between categories to be respectful
-                time.sleep(1)
-                
+                    saved, skipped = self.save_articles_to_firestore(articles, name)
+                    total_saved += saved
+                    total_skipped += skipped
+                time.sleep(1)  # Be respectful to the server
             except Exception as e:
-                print(f"   💥 Error processing category {category_name}: {e}")
-                traceback.print_exc()
-                continue
-        
-        # Update main document with summary
-        self.update_main_document(total_articles_saved, categories_processed, all_articles_sample)
-        
-        end_time = datetime.now()
-        duration = end_time - start_time
-        
-        print(f"\n🏁 PROCESS COMPLETED!")
-        print(f"⏱️  Total time: {duration}")
-        print(f"📂 Categories processed: {categories_processed}")
-        print(f"📰 Total new articles saved: {total_articles_saved}")
-        print(f"🔄 Total existing articles skipped: {total_articles_skipped}")
-        print(f"💾 Articles saved to Firestore collection: {self.articles_collection}")
-        
-        return total_articles_saved > 0
-    
-    def update_main_document(self, total_articles, categories_processed, all_articles_sample=None):
-        """Update the main document with current statistics"""
+                logging.error(f"Failed to process category '{name}': {e}", exc_info=True)
+
+        duration = time.time() - start_time
+        logging.info("🏁 PROCESS COMPLETED!")
+        logging.info(f"⏱️  Total time: {duration:.2f} seconds")
+        logging.info(f"📰 Total new articles saved: {total_saved}")
+        logging.info(f"🔄 Total existing articles skipped: {total_skipped}")
+        return total_saved > 0
+
+    def scrape_full_article_content(self, url: str) -> str:
+        """Scrapes the full article content from a given URL."""
         try:
-            # Create summary data
-            summary_data = {
-                'status': 'success',
-                'totalResults': total_articles,
-                'totalCategories': categories_processed,
-                'source': 'vnexpress_rss',
-                'results': all_articles_sample or []
-            }
+            response = self.session.get(url, timeout=15)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            for selector in self.config['content_selectors']:
+                content_div = soup.select_one(selector)
+                if content_div:
+                    for unwanted in content_div.find_all(['script', 'style', '.ads']):
+                        unwanted.decompose()
+                    return content_div.get_text(separator='\n', strip=True)
             
-            # Save the summary with timestamp
-            doc_ref = self.db.collection(self.news_collection).document('vnexpress_latest')
-            doc_ref.set({
-                'data': summary_data,
-                'last_updated': datetime.now(),
-                'fetch_timestamp': datetime.now().isoformat(),
-                'total_articles_saved': total_articles,
-                'categories_processed': categories_processed,
-                'source': 'vnexpress_rss'
-            })
-            
-            print(f"📊 Updated main document: {total_articles} articles from {categories_processed} categories")
-            return True
-            
+            return "Content not found with available selectors."
+        except requests.exceptions.RequestException as e:
+            logging.error(f"HTTP error scraping {url}: {e}")
+            return "Content scraping failed due to network error."
         except Exception as e:
-            print(f"❌ Error updating main document: {e}")
-            return False
-    
-    def scrape_content_for_existing_articles(self, limit=10):
-        """Scrape full content for articles that need it"""
-        print(f"\n🔍 SCRAPING FULL CONTENT FOR ARTICLES...")
-        
+            logging.error(f"Error scraping content from {url}: {e}")
+            return "Content scraping failed."
+
+    def scrape_content_for_existing_articles(self, limit: int = 10):
+        """Finds articles missing full content and scrapes it."""
+        logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
         try:
-            # Query articles that need content scraping
-            articles_ref = self.db.collection(self.articles_collection)
-            query = articles_ref.where('content', '==', 'CONTENT_TO_BE_SCRAPED').limit(limit)
-            docs = query.stream()
-            
+            docs = self.db.collection(self.articles_collection).where(
+                'content', '==', 'CONTENT_TO_BE_SCRAPED'
+            ).limit(limit).stream()
+
             updated_count = 0
             for doc in docs:
-                try:
-                    article_data = doc.to_dict()
-                    article_url = article_data.get('link')
-                    
-                    if article_url:
-                        print(f"   🔍 Scraping content for: {article_data.get('title', 'Unknown')[:50]}...")
-                        
-                        # Scrape full content
-                        full_content = self.scrape_full_article_content(article_url)
-                        
-                        # Update the article with full content
-                        doc.reference.update({
-                            'content': full_content,
-                            'updated_at': datetime.now().isoformat()
-                        })
-                        
-                        updated_count += 1
-                        time.sleep(2)  # Be respectful to the server
-                
-                except Exception as e:
-                    print(f"   ⚠️  Error scraping content: {e}")
+                article = doc.to_dict()
+                url = article.get('link')
+                if not url:
                     continue
-            
-            print(f"   ✅ Updated content for {updated_count} articles")
-            return updated_count
-            
+
+                logging.info(f"Scraping: {article.get('title', doc.id)[:60]}...")
+                full_content = self.scrape_full_article_content(url)
+                
+                doc.reference.update({
+                    'content': full_content,
+                    'updated_at': datetime.now().isoformat()
+                })
+                updated_count += 1
+                time.sleep(2)  # Be respectful
+
+            logging.info(f"✅ Updated content for {updated_count} articles.")
         except Exception as e:
-            print(f"   ❌ Error in content scraping: {e}")
-            return 0
+            logging.error("An error occurred during content scraping batch.", exc_info=True)
+
 
 def main():
+    """Main function to run the fetcher script with command-line arguments."""
+    parser = argparse.ArgumentParser(description="Fetch news from VnExpress RSS feeds.")
+    parser.add_argument(
+        '--scrape-content',
+        nargs='?',
+        const=10,
+        type=int,
+        metavar='LIMIT',
+        help='Optionally scrape full content for articles. Provide a limit (default: 10).'
+    )
+
+    args = parser.parse_args()
+
     try:
-        fetcher = VnExpressRSSFetcher()
-        
-        # Fetch all RSS categories
+        fetcher = RSSFetcher()
         success = fetcher.fetch_all_categories()
-        
-        # Optionally scrape full content for some articles
-        print(f"\n{'='*50}")
-        scrape_content = input("Do you want to scrape full content for some articles? (y/n): ").lower().strip()
-        if scrape_content == 'y':
-            limit = int(input("How many articles to scrape content for? (default 10): ") or 10)
-            fetcher.scrape_content_for_existing_articles(limit)
-        
-        print("\n" + "="*70)
+
         if success:
-            print("🎉 SUCCESS! VnExpress RSS news fetched and saved!")
-            print("Your Flutter app now has access to Vietnamese news articles!")
+            logging.info("🎉 SUCCESS! VnExpress RSS news fetched and saved.")
         else:
-            print("💥 PROCESS FAILED! Check the errors above.")
-        print("="*70)
-        
+            logging.warning("PROCESS FINISHED, but no new articles were saved.")
+
+        if args.scrape_content is not None:
+            fetcher.scrape_content_for_existing_articles(limit=args.scrape_content)
+
     except Exception as e:
-        print(f"💥 Critical Error: {e}")
-        traceback.print_exc()
+        logging.critical(f"A critical error occurred: {e}", exc_info=True)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
