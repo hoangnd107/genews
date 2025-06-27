@@ -9,15 +9,28 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+// MIGRATION TESTING: Uncomment below imports to test migration
+// import 'package:genews/shared/services/migration_test_service.dart';
+// import 'package:genews/shared/widgets/migration_test_widget.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await OfflineFirst.init();
   await initializeDateFormatting('vi_VN', null);
+
+  // MIGRATION TESTING: Uncomment to run migration test on startup
+  // try {
+  //   final results = await MigrationTestService.testMigration();
+  //   debugPrint('Migration Test Results: $results');
+  //   MigrationTestService.printMigrationSummary();
+  // } catch (e) {
+  //   debugPrint('Migration test failed: $e');
+  // }
+
   runApp(
-    MultiProvider( // Bọc MyApp với MultiProvider
+    MultiProvider(
+      // Bọc MyApp với MultiProvider
       providers: [
         ChangeNotifierProvider(create: (context) => NewsProvider()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
@@ -55,9 +68,10 @@ class MyApp extends StatelessWidget {
           scrolledUnderElevation: 2.0,
         ),
         scaffoldBackgroundColor: Colors.white,
-        textTheme: _buildTextTheme(ThemeData
-            .light()
-            .textTheme, fontSizeProvider.fontSizeMultiplier),
+        textTheme: _buildTextTheme(
+          ThemeData.light().textTheme,
+          fontSizeProvider.fontSizeMultiplier,
+        ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.black,
@@ -106,9 +120,10 @@ class MyApp extends StatelessWidget {
           elevation: 1.0,
           scrolledUnderElevation: 2.0,
         ),
-        textTheme: _buildTextTheme(ThemeData
-            .dark()
-            .textTheme, fontSizeProvider.fontSizeMultiplier),
+        textTheme: _buildTextTheme(
+          ThemeData.dark().textTheme,
+          fontSizeProvider.fontSizeMultiplier,
+        ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
@@ -148,39 +163,55 @@ class MyApp extends StatelessWidget {
   }
 
   TextTheme _buildTextTheme(TextTheme base, double fontSizeMultiplier) {
-    return base.copyWith(
-      displayLarge: base.displayLarge?.copyWith(
-          fontSize: (base.displayLarge?.fontSize ?? 57) * fontSizeMultiplier),
-      displayMedium: base.displayMedium?.copyWith(
-          fontSize: (base.displayMedium?.fontSize ?? 45) * fontSizeMultiplier),
-      displaySmall: base.displaySmall?.copyWith(
-          fontSize: (base.displaySmall?.fontSize ?? 36) * fontSizeMultiplier),
-      headlineLarge: base.headlineLarge?.copyWith(
-          fontSize: (base.headlineLarge?.fontSize ?? 32) * fontSizeMultiplier),
-      headlineMedium: base.headlineMedium?.copyWith(
-          fontSize: (base.headlineMedium?.fontSize ?? 28) * fontSizeMultiplier),
-      headlineSmall: base.headlineSmall?.copyWith(
-          fontSize: (base.headlineSmall?.fontSize ?? 24) * fontSizeMultiplier),
-      titleLarge: base.titleLarge?.copyWith(
-          fontSize: (base.titleLarge?.fontSize ?? 22) * fontSizeMultiplier),
-      titleMedium: base.titleMedium?.copyWith(
-          fontSize: (base.titleMedium?.fontSize ?? 16) * fontSizeMultiplier),
-      titleSmall: base.titleSmall?.copyWith(
-          fontSize: (base.titleSmall?.fontSize ?? 14) * fontSizeMultiplier),
-      bodyLarge: base.bodyLarge?.copyWith(
-          fontSize: (base.bodyLarge?.fontSize ?? 16) * fontSizeMultiplier),
-      bodyMedium: base.bodyMedium?.copyWith(
-          fontSize: (base.bodyMedium?.fontSize ?? 14) * fontSizeMultiplier),
-      bodySmall: base.bodySmall?.copyWith(
-          fontSize: (base.bodySmall?.fontSize ?? 12) * fontSizeMultiplier),
-      labelLarge: base.labelLarge?.copyWith(
-          fontSize: (base.labelLarge?.fontSize ?? 14) * fontSizeMultiplier),
-      labelMedium: base.labelMedium?.copyWith(
-          fontSize: (base.labelMedium?.fontSize ?? 12) * fontSizeMultiplier),
-      labelSmall: base.labelSmall?.copyWith(
-          fontSize: (base.labelSmall?.fontSize ?? 11) * fontSizeMultiplier),
-    ).apply(
-      fontSizeFactor: fontSizeMultiplier,
-    );
+    return base
+        .copyWith(
+          displayLarge: base.displayLarge?.copyWith(
+            fontSize: (base.displayLarge?.fontSize ?? 57) * fontSizeMultiplier,
+          ),
+          displayMedium: base.displayMedium?.copyWith(
+            fontSize: (base.displayMedium?.fontSize ?? 45) * fontSizeMultiplier,
+          ),
+          displaySmall: base.displaySmall?.copyWith(
+            fontSize: (base.displaySmall?.fontSize ?? 36) * fontSizeMultiplier,
+          ),
+          headlineLarge: base.headlineLarge?.copyWith(
+            fontSize: (base.headlineLarge?.fontSize ?? 32) * fontSizeMultiplier,
+          ),
+          headlineMedium: base.headlineMedium?.copyWith(
+            fontSize:
+                (base.headlineMedium?.fontSize ?? 28) * fontSizeMultiplier,
+          ),
+          headlineSmall: base.headlineSmall?.copyWith(
+            fontSize: (base.headlineSmall?.fontSize ?? 24) * fontSizeMultiplier,
+          ),
+          titleLarge: base.titleLarge?.copyWith(
+            fontSize: (base.titleLarge?.fontSize ?? 22) * fontSizeMultiplier,
+          ),
+          titleMedium: base.titleMedium?.copyWith(
+            fontSize: (base.titleMedium?.fontSize ?? 16) * fontSizeMultiplier,
+          ),
+          titleSmall: base.titleSmall?.copyWith(
+            fontSize: (base.titleSmall?.fontSize ?? 14) * fontSizeMultiplier,
+          ),
+          bodyLarge: base.bodyLarge?.copyWith(
+            fontSize: (base.bodyLarge?.fontSize ?? 16) * fontSizeMultiplier,
+          ),
+          bodyMedium: base.bodyMedium?.copyWith(
+            fontSize: (base.bodyMedium?.fontSize ?? 14) * fontSizeMultiplier,
+          ),
+          bodySmall: base.bodySmall?.copyWith(
+            fontSize: (base.bodySmall?.fontSize ?? 12) * fontSizeMultiplier,
+          ),
+          labelLarge: base.labelLarge?.copyWith(
+            fontSize: (base.labelLarge?.fontSize ?? 14) * fontSizeMultiplier,
+          ),
+          labelMedium: base.labelMedium?.copyWith(
+            fontSize: (base.labelMedium?.fontSize ?? 12) * fontSizeMultiplier,
+          ),
+          labelSmall: base.labelSmall?.copyWith(
+            fontSize: (base.labelSmall?.fontSize ?? 11) * fontSizeMultiplier,
+          ),
+        )
+        .apply(fontSizeFactor: fontSizeMultiplier);
   }
 }

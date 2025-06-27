@@ -5,6 +5,8 @@ import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
+import 'package:genews/shared/services/offline_news_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
@@ -123,25 +125,6 @@ class NewsCard extends StatelessWidget {
   final VoidCallback onViewAnalysis;
   final VoidCallback onSave;
   final bool isSaved;
-  static final Map<String, String> _categoryTranslations = {
-    'business': 'Kinh doanh',
-    'crime': 'Tội phạm',
-    'domestic': 'Trong nước',
-    'education': 'Giáo dục',
-    'entertainment': 'Giải trí',
-    'environment': 'Môi trường',
-    'food': 'Ẩm thực',
-    'health': 'Sức khỏe',
-    'lifestyle': 'Đời sống',
-    'politics': 'Chính trị',
-    'science': 'Khoa học',
-    'sports': 'Thể thao',
-    'technology': 'Công nghệ',
-    'top': 'Nổi bật',
-    'tourism': 'Du lịch',
-    'world': 'Thế giới',
-    'other': 'Khác',
-  };
 
   const NewsCard({
     super.key,
@@ -152,47 +135,52 @@ class NewsCard extends StatelessWidget {
   });
 
   String _translateCategory(dynamic category) {
-    // Handle null case
     if (category == null) return "";
 
-    // If it's a list, extract the first category or join them
-    String categoryStr;
-    if (category is List<String>) {
+    // If category is a List (array), get the first category for display
+    if (category is List) {
       if (category.isEmpty) return "";
-      categoryStr = category[0]; // Take first category from list
-    } else {
-      // It's already a string or something else that we can convert
-      categoryStr = category.toString();
+
+      // Get the first category from the array and clean it
+      final firstCategory = _cleanCategoryString(category.first.toString());
+
+      // If it's already in Vietnamese (contains Vietnamese characters), keep it
+      if (_isVietnamese(firstCategory)) {
+        return firstCategory;
+      }
+
+      // Otherwise, translate from English to Vietnamese
+      return CategoryMappingService.toVietnamese(firstCategory);
     }
 
+    // If category is a String, clean it first
+    final categoryStr = _cleanCategoryString(category.toString());
     if (categoryStr.isEmpty) return "";
 
-    // Clean up category text and convert to lowercase for matching
-    String cleanCategory =
-        categoryStr.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    // Try to find exact match first
-    if (_categoryTranslations.containsKey(cleanCategory)) {
-      return _categoryTranslations[cleanCategory]!;
+    if (_isVietnamese(categoryStr)) {
+      return categoryStr;
     }
 
-    // If no exact match, look for partial matches
-    for (var entry in _categoryTranslations.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
-      }
-    }
+    return CategoryMappingService.toVietnamese(categoryStr);
+  }
 
-    // If no match found, capitalize first letter of each word
-    return cleanCategory
-        .split(' ')
-        .map(
-          (word) =>
-              word.isNotEmpty
-                  ? '${word[0].toUpperCase()}${word.substring(1)}'
-                  : '',
-        )
-        .join(' ');
+  // Clean category string - remove special characters and brackets
+  String _cleanCategoryString(String category) {
+    return category
+        .replaceAll(
+          RegExp(r'[\[\]"",\.]'),
+          '',
+        ) // Remove brackets, quotes, commas, dots
+        .trim();
+  }
+
+  // Helper method to check if text contains Vietnamese characters
+  bool _isVietnamese(String text) {
+    // Check for Vietnamese-specific characters
+    final vietnameseRegex = RegExp(
+      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+    );
+    return vietnameseRegex.hasMatch(text);
   }
 
   String _formatPubDate(BuildContext context, DateTime? pubDateTime) {
@@ -298,9 +286,7 @@ class NewsCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           _formatPubDate(context, newsData.pubDate),
-                          style: TextStyle(
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(fontSize: 13),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -349,12 +335,27 @@ class NewsCard extends StatelessWidget {
   }
 }
 
-void _openNewsWebView(BuildContext context, Result newsData) {
+void _openNewsWebView(BuildContext context, Result newsData) async {
   final url = newsData.link ?? newsData.sourceUrl ?? "";
   if (url.isEmpty) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Không có liên kết để mở.')));
+    return;
+  }
+
+  // Check internet connection before opening webview
+  final offlineService = OfflineNewsService.instance;
+  final hasInternet = await offlineService.hasInternetConnection();
+
+  if (!hasInternet) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cần kết nối internet để xem nội dung chi tiết'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 3),
+      ),
+    );
     return;
   }
 

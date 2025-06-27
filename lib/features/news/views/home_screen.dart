@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:genews/core/enums.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
-import 'package:genews/features/news/views/news_webview_screen.dart'
-    as webview;
+import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/shared/styles/colors.dart';
 import 'package:provider/provider.dart';
@@ -63,12 +62,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (newsProvider.allNews.results == null ||
         newsProvider.allNews.results!.isEmpty ||
         newsProvider.newsViewState == ViewState.error) {
-      newsProvider.fetchNews();
+      newsProvider.fetchTrendingNews();
     }
   }
 
   _refreshNews() {
-    context.read<NewsProvider>().fetchNews();
+    context.read<NewsProvider>().fetchTrendingNews();
   }
 
   Future<void> _loadSavedStates(List<Result> articles) async {
@@ -98,8 +97,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       if (selectedCategory == category) {
         selectedCategory = null;
+        // Load trending news when category is cleared
+        context.read<NewsProvider>().fetchTrendingNews();
       } else {
         selectedCategory = category;
+        // Load news by category when category is selected
+        context.read<NewsProvider>().fetchNewsByCategory(category);
       }
     });
   }
@@ -133,16 +136,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     final newsProvider = context.read<NewsProvider>();
-    final allArticles = newsProvider.allNews.results ?? [];
 
-    final searchResults = _getFilteredNews(allArticles, searchQuery);
-
-    setState(() {
-      _searchResults = searchResults;
-      _isSearching = false;
-    });
-
-    _loadSavedStates(searchResults);
+    // Use Firestore search if no category filter is applied
+    if (selectedCategory == null) {
+      newsProvider.searchArticles(searchQuery).then((_) {
+        final searchResults = newsProvider.allNews.results ?? [];
+        setState(() {
+          _searchResults = searchResults;
+          _isSearching = false;
+        });
+        _loadSavedStates(searchResults);
+      });
+    } else {
+      // Use local filter when category is selected (for combined search)
+      final allArticles = newsProvider.allNews.results ?? [];
+      final searchResults = _getFilteredNews(allArticles, searchQuery);
+      setState(() {
+        _searchResults = searchResults;
+        _isSearching = false;
+      });
+      _loadSavedStates(searchResults);
+    }
   }
 
   void _onSearchChanged(String query) {
@@ -450,17 +464,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildContent(NewsProvider newsState, List<Result> allArticles) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    if (newsState.newsViewState == ViewState.busy) {
-      return Container(
-        height: 300,
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (allArticles.isEmpty || newsState.newsViewState == ViewState.error) {
+    // Always show error state if there's an error and no cached data
+    if (allArticles.isEmpty && newsState.newsViewState == ViewState.error) {
       return _buildErrorState();
     }
 
@@ -469,8 +474,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return _buildSearchResults();
     }
 
-    // Show main content
-    return _buildMainContent(allArticles);
+    // Show main content with cached data even when loading new data
+    return _buildMainContent(
+      allArticles,
+      newsState.newsViewState == ViewState.busy,
+    );
   }
 
   Widget _buildErrorState() {
@@ -521,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMainContent(List<Result> allArticles) {
+  Widget _buildMainContent(List<Result> allArticles, [bool isLoading = false]) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final filteredArticles = _getFilteredNews(allArticles);
 
@@ -534,10 +542,158 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             _buildCarouselSection(allArticles),
 
           // Category Section
-          _buildCategorySection(),
+          if (allArticles.isNotEmpty && !_isSearchActive)
+            _buildCategorySection(),
 
-          // News Content
-          _buildNewsContent(filteredArticles),
+          // Loading indicator for category changes (small and non-intrusive)
+          if (isLoading && selectedCategory != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Đang tải tin tức...',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // News List Section
+          if (filteredArticles.isNotEmpty)
+            _buildNewsListSection(filteredArticles),
+
+          // Empty state for filtered results
+          if (filteredArticles.isEmpty && allArticles.isNotEmpty)
+            _buildEmptyFilterState(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_list_off,
+              size: 64,
+              color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              selectedCategory != null
+                  ? 'Không có tin tức nào trong chuyên mục này'
+                  : 'Không tìm thấy kết quả',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              selectedCategory != null
+                  ? 'Thử chọn chuyên mục khác hoặc xóa bộ lọc'
+                  : 'Thử thay đổi từ khóa tìm kiếm',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (selectedCategory != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _onCategorySelected(selectedCategory!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Xóa bộ lọc'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewsListSection(List<Result> filteredArticles) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: isDarkMode ? Colors.grey[900] : Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue, Colors.blue.withOpacity(0.7)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.article, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedCategory != null
+                          ? 'Tin tức ${selectedCategory}'
+                          : 'Tất cả tin tức',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '${filteredArticles.length} bài viết',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // News content based on view mode
+          _isListView
+              ? _buildNewsListView(filteredArticles)
+              : _buildNewsGridView(filteredArticles),
         ],
       ),
     );
@@ -808,6 +964,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ignore: unused_element
   Widget _buildNewsContent(List<Result> filteredArticles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -1234,56 +1391,56 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Thêm method chia sẻ
   void _shareArticle(Result article) {
-//     final String shareText = '''
-// 📰 ${article.title ?? 'Tin tức mới'}
+    //     final String shareText = '''
+    // 📰 ${article.title ?? 'Tin tức mới'}
 
-// 🔗 ${article.link ?? ''}
+    // 🔗 ${article.link ?? ''}
 
-// 📱 Chia sẻ từ GeNews
-// ''';
+    // 📱 Chia sẻ từ GeNews
+    // ''';
 
-//     // Import share_plus package nếu chưa có
-//     // Hoặc sử dụng platform channels để chia sẻ
-//     try {
-//       // Share.ios_share(shareText);
+    //     // Import share_plus package nếu chưa có
+    //     // Hoặc sử dụng platform channels để chia sẻ
+    //     try {
+    //       // Share.ios_share(shareText);
 
-//       // Tạm thời hiển thị dialog với nội dung chia sẻ
-//       showDialog(
-//         context: context,
-//         builder: (BuildContext context) {
-//           return AlertDialog(
-//             title: const Text('Chia sẻ bài viết'),
-//             content: SingleChildScrollView(child: Text(shareText)),
-//             actions: [
-//               TextButton(
-//                 child: const Text('Đóng'),
-//                 onPressed: () => Navigator.of(context).pop(),
-//               ),
-//               TextButton(
-//                 child: const Text('Sao chép'),
-//                 onPressed: () {
-//                   // Clipboard.setData(ClipboardData(text: shareText));
-//                   Navigator.of(context).pop();
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text('Đã sao chép vào clipboard'),
-//                       duration: Duration(seconds: 2),
-//                     ),
-//                   );
-//                 },
-//               ),
-//             ],
-//           );
-//         },
-//       );
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('Không thể chia sẻ bài viết'),
-//           duration: Duration(seconds: 2),
-//         ),
-//       );
-//     }
+    //       // Tạm thời hiển thị dialog với nội dung chia sẻ
+    //       showDialog(
+    //         context: context,
+    //         builder: (BuildContext context) {
+    //           return AlertDialog(
+    //             title: const Text('Chia sẻ bài viết'),
+    //             content: SingleChildScrollView(child: Text(shareText)),
+    //             actions: [
+    //               TextButton(
+    //                 child: const Text('Đóng'),
+    //                 onPressed: () => Navigator.of(context).pop(),
+    //               ),
+    //               TextButton(
+    //                 child: const Text('Sao chép'),
+    //                 onPressed: () {
+    //                   // Clipboard.setData(ClipboardData(text: shareText));
+    //                   Navigator.of(context).pop();
+    //                   ScaffoldMessenger.of(context).showSnackBar(
+    //                     const SnackBar(
+    //                       content: Text('Đã sao chép vào clipboard'),
+    //                       duration: Duration(seconds: 2),
+    //                     ),
+    //                   );
+    //                 },
+    //               ),
+    //             ],
+    //           );
+    //         },
+    //       );
+    //     } catch (e) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(
+    //           content: Text('Không thể chia sẻ bài viết'),
+    //           duration: Duration(seconds: 2),
+    //         ),
+    //       );
+    //     }
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
