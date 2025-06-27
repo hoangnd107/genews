@@ -67,9 +67,18 @@ The GeNews system follows a microservices architecture with clear separation of 
 ### 🌐 Content Aggregation
 
 - **Multiple Sources**: RSS feeds, web scraping, and official APIs
-- **Real-time Updates**: Live news feed with refresh and offline support
+- **Real-time Updates**: Live news feed with Firestore real-time sync
 - **Vietnamese Language**: Localized content and interface
 - **Category Management**: Organized by topics (Politics, Business, Sports, etc.)
+- **Advanced Search**: Firestore-powered full-text search capabilities
+
+## 🔄 Data Flow
+
+1. **Python Scripts** (`python/` folder) fetch news from multiple sources
+2. **Firestore** (`articles` collection) stores processed news articles
+3. **Flutter App** retrieves data directly from Firestore
+4. **Gemini AI** generates summaries on-demand with caching
+5. **Real-time Updates** sync new articles across all devices
 
 ## 🛠️ Tech Stack
 
@@ -166,10 +175,17 @@ genews/
    FIREBASE_PROJECT_ID=your_firebase_project_id
    ```
 
-5. **Install Python dependencies**
+5. **Install Python dependencies (for data fetching)**
+
    ```bash
    cd python
    pip install -r requirements.txt
+   ```
+
+6. **Run Python scripts to populate Firestore**
+   ```bash
+   cd python
+   python main.py  # Fetch news from all sources
    ```
 
 ### Running the Application
@@ -183,6 +199,16 @@ flutter run -d chrome          # Web
 flutter run -d windows         # Windows
 flutter run -d macos          # macOS
 flutter run -d linux          # Linux
+```
+
+### Testing Migration
+
+```bash
+# In Flutter app, run migration test
+MigrationTestService.testMigration()
+
+# Or use the debug widget
+const MigrationTestWidget()
 ```
 
 <!-- #### Backend Services

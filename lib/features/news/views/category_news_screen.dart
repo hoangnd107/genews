@@ -4,10 +4,12 @@ import 'package:genews/core/enums.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
+import 'package:genews/features/news/data/repository/firestore_news_repository.dart';
+import 'package:genews/shared/widgets/paginated_list_view.dart';
 import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
-import 'package:genews/features/news/views/news_webview_screen.dart'
-    as webview;
+import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 
@@ -36,7 +38,8 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   String _searchQuery = '';
   List<Result> _filteredArticles = [];
   bool _isSearchActive = false;
-  bool _isListView = true; // true = danh sách dạng dòng, false = lưới (NewsCard)
+  bool _isListView =
+      true; // true = danh sách dạng dòng, false = lưới (NewsCard)
 
   @override
   void initState() {
@@ -50,22 +53,32 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     super.dispose();
   }
 
-  void _loadCategoryNews() {
-    final newsProvider = context.read<NewsProvider>();
-    final allArticles = newsProvider.allNews.results ?? [];
-
-    final categoryArticles =
-        allArticles.where((article) {
-          final articleCategory =
-              article.category?.toString().toLowerCase() ?? '';
-          return articleCategory == widget.category.toLowerCase();
-        }).toList();
-
+  void _loadCategoryNews() async {
     setState(() {
-      _filteredArticles = categoryArticles;
+      _filteredArticles = [];
     });
 
-    _loadSavedStates(categoryArticles);
+    try {
+      // Import repository để gọi trực tiếp
+      final repo = FirestoreNewsRepositoryImpl();
+
+      // Convert display category to query key (English or Vietnamese)
+      final queryCategory = CategoryMappingService.getCategoryKey(
+        widget.category,
+      );
+      final articles = await repo.getArticlesByCategory(queryCategory);
+
+      setState(() {
+        _filteredArticles = articles;
+      });
+
+      _loadSavedStates(articles);
+    } catch (e) {
+      print("Error loading category news: $e");
+      setState(() {
+        _filteredArticles = [];
+      });
+    }
   }
 
   Future<void> _loadSavedStates(List<Result> articles) async {
@@ -92,40 +105,22 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   }
 
   void _performSearch(String query) {
-    final newsProvider = context.read<NewsProvider>();
-    final allArticles = newsProvider.allNews.results ?? [];
-
-    final categoryArticles =
-        allArticles.where((article) {
-          final articleCategory =
-              article.category?.toString().toLowerCase() ?? '';
-          return articleCategory == widget.category.toLowerCase();
-        }).toList();
-
     if (query.isEmpty) {
+      _loadCategoryNews(); // Reload category news when search is cleared
       setState(() {
-        _filteredArticles = categoryArticles;
         _searchQuery = '';
       });
       return;
     }
 
-    final lowerQuery = query.toLowerCase();
-    final searchResults =
-        categoryArticles.where((article) {
-          final titleMatch =
-              article.title?.toLowerCase().contains(lowerQuery) ?? false;
-          final descMatch =
-              article.description?.toLowerCase().contains(lowerQuery) ?? false;
-          final sourceMatch =
-              article.sourceName?.toLowerCase().contains(lowerQuery) ?? false;
-
-          return titleMatch || descMatch || sourceMatch;
-        }).toList();
-
-    setState(() {
-      _filteredArticles = searchResults;
-      _searchQuery = query;
+    final newsProvider = context.read<NewsProvider>();
+    newsProvider.searchArticles("${widget.category} $query").then((_) {
+      final searchResults = newsProvider.allNews.results ?? [];
+      setState(() {
+        _filteredArticles = searchResults;
+        _searchQuery = query;
+      });
+      _loadSavedStates(searchResults);
     });
   }
 
@@ -140,7 +135,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   }
 
   void _refreshNews() {
-    context.read<NewsProvider>().fetchNews().then((_) {
+    context.read<NewsProvider>().fetchTrendingNews().then((_) {
       _loadCategoryNews();
     });
   }
@@ -205,16 +200,23 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                         child: Container(
                           height: 45,
                           decoration: BoxDecoration(
-                            color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.grey[100],
                             borderRadius: BorderRadius.circular(25),
                             border: Border.all(
-                              color: isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: isDarkMode
-                                    ? Colors.black.withOpacity(0.3)
-                                    : Colors.black.withOpacity(0.05),
+                                color:
+                                    isDarkMode
+                                        ? Colors.black.withOpacity(0.3)
+                                        : Colors.black.withOpacity(0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -228,9 +230,13 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                             ),
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
-                              hintText: 'Tìm kiếm trong ${widget.categoryDisplayName}...',
+                              hintText:
+                                  'Tìm kiếm trong ${widget.categoryDisplayName}...',
                               hintStyle: TextStyle(
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color:
+                                    isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                               ),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
@@ -239,19 +245,26 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                               ),
                               prefixIcon: Icon(
                                 Icons.search,
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color:
+                                    isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                 size: 20,
                               ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(
-                                        Icons.clear,
-                                        size: 20,
-                                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                                      ),
-                                      onPressed: _clearSearch,
-                                    )
-                                  : null,
+                              suffixIcon:
+                                  _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                        icon: Icon(
+                                          Icons.clear,
+                                          size: 20,
+                                          color:
+                                              isDarkMode
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[600],
+                                        ),
+                                        onPressed: _clearSearch,
+                                      )
+                                      : null,
                               isDense: true,
                             ),
                             onChanged: _onSearchChanged,
@@ -276,9 +289,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     return SliverAppBar(
       floating: false,
       pinned: true,
-      backgroundColor: widget.categoryColors.isNotEmpty
-          ? widget.categoryColors[0]
-          : Colors.blue,
+      backgroundColor:
+          widget.categoryColors.isNotEmpty
+              ? widget.categoryColors[0]
+              : Colors.blue,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
@@ -345,19 +359,21 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: widget.categoryColors.length >= 4
-                  ? widget.categoryColors
-                  : [
-                      widget.categoryColors.isNotEmpty
-                          ? widget.categoryColors[0]
-                          : Colors.blue,
-                      widget.categoryColors.length > 1
-                          ? widget.categoryColors[1]
-                          : Colors.blue[300]!,
-                    ],
-              stops: widget.categoryColors.length >= 4
-                  ? const [0.0, 0.3, 0.7, 1.0]
-                  : const [0.0, 1.0],
+              colors:
+                  widget.categoryColors.length >= 4
+                      ? widget.categoryColors
+                      : [
+                        widget.categoryColors.isNotEmpty
+                            ? widget.categoryColors[0]
+                            : Colors.blue,
+                        widget.categoryColors.length > 1
+                            ? widget.categoryColors[1]
+                            : Colors.blue[300]!,
+                      ],
+              stops:
+                  widget.categoryColors.length >= 4
+                      ? const [0.0, 0.3, 0.7, 1.0]
+                      : const [0.0, 1.0],
             ),
           ),
         ),
@@ -424,9 +440,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     icon: const Icon(Icons.refresh),
                     label: const Text("Tải lại"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.categoryColors.isNotEmpty
-                          ? widget.categoryColors[0]
-                          : Colors.blue,
+                      backgroundColor:
+                          widget.categoryColors.isNotEmpty
+                              ? widget.categoryColors[0]
+                              : Colors.blue,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -467,9 +484,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     children: [
                       Icon(
                         Icons.search,
-                        color: widget.categoryColors.isNotEmpty
-                            ? widget.categoryColors[0]
-                            : Colors.blue,
+                        color:
+                            widget.categoryColors.isNotEmpty
+                                ? widget.categoryColors[0]
+                                : Colors.blue,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -477,9 +495,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                         child: Text(
                           '${_filteredArticles.length} kết quả cho "$_searchQuery"',
                           style: TextStyle(
-                            color: widget.categoryColors.isNotEmpty
-                                ? widget.categoryColors[0]
-                                : Colors.blue,
+                            color:
+                                widget.categoryColors.isNotEmpty
+                                    ? widget.categoryColors[0]
+                                    : Colors.blue,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -490,10 +509,8 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // Content based on view mode - ĐẢO NGƯỢC LOGIC như DiscoverScreen
-              _isListView 
-                  ? _buildListViewContent() // Danh sách dạng dòng
-                  : _buildGridViewContent(), // Lưới (NewsCard)
+              // Content with pagination
+              _buildPaginatedContent(),
             ],
           ),
         ),
@@ -501,10 +518,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     );
   }
 
-  // THAY ĐỔI: _buildListView thành _buildListViewContent (dạng dòng ngang)
-  Widget _buildListViewContent() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+  Widget _buildPaginatedContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -514,61 +528,41 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
               : 'Tất cả tin tức',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _filteredArticles.length,
-          separatorBuilder: (context, index) => Divider(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-            height: 1,
-          ),
-          itemBuilder: (context, index) {
-            final article = _filteredArticles[index];
-            final articleId = article.articleId ?? article.link ?? '';
-            final isSaved = _savedStates[articleId] ?? false;
+        const SizedBox(height: 16),
 
-            return _buildListRowItem(article, isSaved);
-          },
+        // Paginated list of articles
+        SizedBox(
+          height: 600, // Fixed height for the paginated list
+          child: PaginatedListView<Result>(
+            items: _filteredArticles,
+            itemsPerPage: 15,
+            emptyMessage:
+                _searchQuery.isNotEmpty
+                    ? 'Không tìm thấy kết quả nào cho "$_searchQuery"'
+                    : 'Không có tin tức nào trong chuyên mục này',
+            itemBuilder: (context, article, index) {
+              final articleId = article.articleId ?? article.link ?? '';
+              final isSaved = _savedStates[articleId] ?? false;
+
+              return _isListView
+                  ? _buildListRowItem(article, isSaved)
+                  : _buildGridItem(article, isSaved);
+            },
+          ),
         ),
       ],
     );
   }
 
-  // THAY ĐỔI: _buildGridView thành _buildGridViewContent (sử dụng NewsCard)
-  Widget _buildGridViewContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _searchQuery.isNotEmpty
-              ? '${_filteredArticles.length} kết quả'
-              : 'Tất cả tin tức',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _filteredArticles.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final article = _filteredArticles[index];
-            final articleId = article.articleId ?? article.link ?? '';
-            final isSaved = _savedStates[articleId] ?? false;
-
-            return GestureDetector(
-              onTap: () => _openNewsWebView(article),
-              child: NewsCard(
-                newsData: article,
-                onViewAnalysis: () => _openNewsAnalysis(article),
-                onSave: () => _toggleSave(article),
-                isSaved: isSaved,
-              ),
-            );
-          },
-        ),
-      ],
+  Widget _buildGridItem(Result article, bool isSaved) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: NewsCard(
+        newsData: article,
+        isSaved: isSaved,
+        onSave: () => _toggleSave(article),
+        onViewAnalysis: () => _openNewsAnalysis(article),
+      ),
     );
   }
 
@@ -594,15 +588,16 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorWidget: (context, error, stackTrace) => Container(
-                  width: 80,
-                  height: 80,
-                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                ),
+                errorWidget:
+                    (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
               ),
             ),
 
@@ -640,7 +635,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                         child: Text(
                           article.sourceName ?? "",
                           style: TextStyle(
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[500],
                             fontSize: 11,
                           ),
                           maxLines: 1,
@@ -650,7 +648,8 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                       Text(
                         _formatTime(article.pubDate),
                         style: TextStyle(
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                          color:
+                              isDarkMode ? Colors.grey[400] : Colors.grey[500],
                           fontSize: 11,
                         ),
                       ),
@@ -686,65 +685,83 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                         break;
                     }
                   },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'share',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.ios_share,
-                            size: 20,
-                            color: isDarkMode ? Colors.white : Colors.black87,
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'share',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.ios_share,
+                                size: 20,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Chia sẻ',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Chia sẻ',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
+                        ),
+                        PopupMenuItem(
+                          value: 'summary',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bolt,
+                                size: 20,
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Tóm tắt',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'summary',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bolt,
-                            size: 20,
-                            color: Colors.orange,
+                        ),
+                        PopupMenuItem(
+                          value: 'bookmark',
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSaved
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                size: 20,
+                                color:
+                                    isSaved
+                                        ? Colors.blue
+                                        : (isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                isSaved ? 'Bỏ lưu' : 'Lưu',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Tóm tắt',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'bookmark',
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSaved ? Icons.bookmark : Icons.bookmark_border,
-                            size: 20,
-                            color: isSaved ? Colors.blue : (isDarkMode ? Colors.white : Colors.black87),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            isSaved ? 'Bỏ lưu' : 'Lưu',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
                 ),
               ),
             ),
@@ -758,11 +775,12 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => webview.NewsWebViewScreen(
-          url: article.link ?? "",
-          title: article.title ?? "",
-          newsData: article,
-        ),
+        builder:
+            (context) => webview.NewsWebViewScreen(
+              url: article.link ?? "",
+              title: article.title ?? "",
+              newsData: article,
+            ),
       ),
     );
   }
