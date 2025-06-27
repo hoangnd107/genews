@@ -5,242 +5,75 @@
 
 ## 🌟 Overview
 
-**GeNews** is an intelligent, multi-platform news aggregator and summarizer built with Flutter and powered by Google's Gemini AI. The application provides users with AI-driven news summaries delivery across mobile platforms.
+**GeNews** is a cross-platform news aggregator and summarizer built with Flutter, powered by Google Gemini AI. The app fetches news from multiple sources, stores and syncs data in Firestore, and provides real-time updates, advanced search, bookmarking, sharing, and in-app reading with ad-blocking.
 
 ## 🏗️ System Architecture
 
 ![System Architecture](assets/system.png)
 
-### Architecture Overview
+### Main Components
 
-The GeNews system follows a microservices architecture with clear separation of concerns:
-
-#### **Data Processing Layer (Python Backend)**
-
-- **Web Scraping**: Automated content extraction using Selenium
-- **RSS Integration**: Real-time RSS feed processing and aggregation
-- **API Aggregation**: Integration with official news APIs
-- **Data Pipeline**: Automated processing, enrichment, and storage of news articles
-
-#### **Cloud Infrastructure (Google Cloud Platform)**
-
-- **Firestore Database**: NoSQL storage for articles, bookmarks, and user data
-- **Real-time Synchronization**: Instant updates across all client devices
-- **Scalable Storage**: Efficient handling of large-scale news data
-
-#### **AI Processing (Google Gemini)**
-
-- **Summary Generation**: Automatic, structured news summarization in Vietnamese
-- **Content Analysis**: Extracts key points, context, and insights from articles
-
-#### **Client Application (Flutter)**
-
-- **Cross-Platform UI**: Single codebase for all platforms
-- **State Management**: Provider pattern for reactive UI updates
-- **Real-time Updates**: Live data sync with backend
-- **Advanced Search**: Full-text search with category filtering
-- **Bookmark Management**: Save, organize, and manage favorite articles
-- **Dark/Light Theme**: Automatic and manual theme switching
-- **Customizable Font Sizes**: Accessibility-focused reading experience
-- **Social Sharing**: Share news easily via native and web platforms
-- **In-app WebView**: Read full articles with ad-blocking support
+- **Data Processing (Python Backend):**
+  - Automated news collection from RSS, web scraping (Selenium), and official APIs
+  - Preprocessing and normalization, storing articles in Firestore via scripts in [`python/`](python/)
+- **Cloud Infrastructure (Firebase/Google Cloud):**
+  - **Firestore Database:** Stores articles, bookmarks, and user data
+  - **Realtime Sync:** Instant data updates across all devices
+  - **Google Gemini AI:** Generates news summaries and content analysis (called directly from the Flutter app)
+- **Flutter Application (Client):**
+  - **Cross-platform UI:** Android, iOS, Web, Windows, macOS, Linux
+  - **State Management:** Provider pattern
+  - **Advanced Search:** Full-text search, filter by category/source
+  - **Bookmarking:** Save, manage, and search saved articles
+  - **Sharing:** Native and web sharing support
+  - **WebView:** In-app reading with ad-blocking
+  - **UI Customization:** Dark/Light mode, adjustable font size
 
 ## 🚀 Key Features
 
-### 🤖 AI-Powered Intelligence
+- **AI Summarization:** Automatic article summarization using Gemini AI, with caching for performance
+- **Powerful Search:** Full-text search, filter by category/source, supports Vietnamese and English
+- **Bookmark & Management:** Save, search, and filter bookmarks, synced across devices
+- **Easy Sharing:** Share articles via popular platforms
+- **Ad-blocking WebView:** Read original articles with automatic ad-blocking
+- **Realtime Updates:** Instant news updates via Firestore realtime sync
+- **UI Customization:** Dark/Light mode, adjustable font size, optimized reading experience
 
-- **Smart Summaries**: Gemini AI transforms lengthy articles into concise, structured content
-- **Contextual Analysis**: Highlights key points, context, and implications
+## 🛠️ Services & Technologies Used
 
-### 📱 Multi-Platform Support
-
-- **Cross-Platform**: Native performance on iOS, Android, Web, Windows, macOS, and Linux
-
-### 🎨 User Experience
-
-- **Dark/Light Theme**: System and manual switching
-- **Customizable Font Sizes**: For optimal readability
-- **Advanced Search**: Search by keyword, category, and source
-- **Bookmark Management**: Save and organize articles for later reading
-- **Social Sharing**: One-tap sharing to social platforms
-
-### 🌐 Content Aggregation
-
-- **Multiple Sources**: RSS feeds, web scraping, and official APIs
-- **Real-time Updates**: Live news feed with Firestore real-time sync
-- **Vietnamese Language**: Localized content and interface
-- **Category Management**: Organized by topics (Politics, Business, Sports, etc.)
-- **Advanced Search**: Firestore-powered full-text search capabilities
-
-## 🔄 Data Flow
-
-1. **Python Scripts** (`python/` folder) fetch news from multiple sources
-2. **Firestore** (`articles` collection) stores processed news articles
-3. **Flutter App** retrieves data directly from Firestore
-4. **Gemini AI** generates summaries on-demand with caching
-5. **Real-time Updates** sync new articles across all devices
-
-## 🛠️ Tech Stack
-
-### Frontend
-
-- **Flutter 3.x**: Cross-platform UI framework
-- **Dart**: Primary programming language
-- **Provider**: State management
-- **WebView**: In-app web content rendering with ad-blocking
-- **Cached Network Image**: Optimized image loading
-
-### Backend & Data Processing
-
-- **Python**: Data processing and web scraping
-- **Selenium**: Automated web content extraction
-- **RSS Parser**: Feed processing and aggregation
-- **REST APIs**: External news source integration
-
-### Cloud Services
-
-- **Firebase/Firestore**: Real-time database and sync
-- **Google Gemini AI**: Content analysis and summarization
-- **Google Cloud Platform**: Infrastructure and hosting
+- **Flutter 3.x** (Dart): Cross-platform UI
+- **Firebase Firestore:** Storage, realtime sync
+- **Google Gemini AI:** Summarization, content analysis
+- **Python (Selenium, RSS Parser):** Data collection and processing
+- **Provider:** State management
+- **WebView:** In-app reading, ad-blocking
+- **Cached Network Image:** Optimized image loading
+- **Share Plus:** Native/web sharing
+- **Custom UI:** Theme, font, pagination, etc.
 
 ## 📁 Project Structure
 
 ```
 genews/
-├── .env
-├── .gitignore
-├── .metadata
-├── analysis_options.yaml
-├── devtools_options.yaml
-├── firebase.json
-├── genews.iml
-├── pubspec.lock
-├── pubspec.yaml
-├── README.md
-├── android/           # Android-specific configuration
-├── assets/            # Static resources (icons, images)
-├── build/             # Build outputs (auto-generated)
-├── ios/               # iOS-specific configuration
-├── lib/               # Main Flutter/Dart source code
-│   ├── core/          # Core utilities and constants
-│   ├── features/      # Feature modules (news, bookmarks, settings, etc.)
-│   ├── shared/        # Common widgets, styles, and utilities
-│   └── main.dart      # Application entry point
-├── linux/             # Linux desktop configuration
-├── macos/             # macOS configuration
+├── lib/               # Flutter/Dart source code
+│   ├── core/          # Utilities, constants
+│   ├── features/      # Features: news, bookmarks, settings, etc.
+│   ├── shared/        # Shared widgets, styles, services
+│   └── main.dart      # Entry point
 ├── python/            # Backend data processing scripts
-├── test/              # Unit and widget tests
-├── web/               # Web deployment files
-├── windows/           # Windows desktop configuration
-└── .idea/             # IDE settings (for JetBrains IDEs)
+├── assets/            # Icons, images, static resources
+├── android/ ios/ ...  # Platform-specific configs
+├── test/              # Unit/widget tests
+└── ...
 ```
 
-## 🚀 Getting Started
+## 🔧 Setup & Configuration
 
-### Prerequisites
+- **Firestore:** Create a project, enable Firestore, set up rules, create `articles` collection
+- **Gemini AI:** Obtain API key, configure in `.env`
+- **Python:** Install dependencies, run scripts to populate Firestore
 
-- Flutter SDK (3.0 or higher)
-- Dart SDK (3.0 or higher)
-- Python 3.8+ (for backend processing)
-- Firebase project setup
-- Google Gemini API key
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/yourusername/genews.git
-   cd genews
-   ```
-
-2. **Install Flutter dependencies**
-
-   ```bash
-   flutter pub get
-   ```
-
-3. **Configure Firebase**
-
-   - Create a new Firebase project
-   - Enable Firestore Database
-   - Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
-   - Place configuration files in respective platform directories
-
-4. **Set up environment variables**
-
-   ```bash
-   # Create .env file in project root
-   GEMINI_API_KEY=your_gemini_api_key
-   FIREBASE_PROJECT_ID=your_firebase_project_id
-   ```
-
-5. **Install Python dependencies (for data fetching)**
-
-   ```bash
-   cd python
-   pip install -r requirements.txt
-   ```
-
-6. **Run Python scripts to populate Firestore**
-   ```bash
-   cd python
-   python main.py  # Fetch news from all sources
-   ```
-
-### Running the Application
-
-```bash
-# Debug mode
-flutter run
-
-# Specific platform
-flutter run -d chrome          # Web
-flutter run -d windows         # Windows
-flutter run -d macos          # macOS
-flutter run -d linux          # Linux
-```
-
-### Testing Migration
-
-```bash
-# In Flutter app, run migration test
-MigrationTestService.testMigration()
-
-# Or use the debug widget
-const MigrationTestWidget()
-```
-
-<!-- #### Backend Services
-
-```bash
-cd python
-python main.py
-``` -->
-
-## 🔧 Configuration
-
-### Firebase Setup
-
-1. Create a Firestore database
-2. Configure security rules
-3. Set up collections: `news`, `bookmarks`, `categories`
-
-### API Configuration
-
-- Configure news API endpoints in [`lib/core/constants.dart`](lib/core/constants.dart)
-- Set up Gemini AI credentials
-- Configure RSS feed sources
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 👥 Authors
+## 👥 Author
 
 - **Hoang Nguyen Duy**
 

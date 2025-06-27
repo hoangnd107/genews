@@ -62,7 +62,7 @@ class APIFetcher:
             )
         if not os.path.isabs(service_account_path):
             service_account_path = os.path.join(
-                os.path.dirname(__file__), "..", service_account_path
+                os.path.dirname(__file__), service_account_path
             )
         if not os.path.exists(service_account_path):
             raise FileNotFoundError(
