@@ -17,32 +17,40 @@ The GeNews system follows a microservices architecture with clear separation of 
 
 #### **Data Processing Layer (Python Backend)**
 
-- **Web Scraping**: Selenium-based automated content extraction
-- **RSS Integration**: Real-time RSS feed processing
+- **Web Scraping**: Automated content extraction using Selenium
+- **RSS Integration**: Real-time RSS feed processing and aggregation
 - **API Aggregation**: Integration with official news APIs
-- **Data Pipeline**: Automated content processing and storage
+- **Data Pipeline**: Automated processing, enrichment, and storage of news articles
 
 #### **Cloud Infrastructure (Google Cloud Platform)**
 
-- **Firestore Database**: NoSQL document storage for articles and user data
+- **Firestore Database**: NoSQL storage for articles, bookmarks, and user data
 - **Real-time Synchronization**: Instant updates across all client devices
 - **Scalable Storage**: Efficient handling of large-scale news data
 
 #### **AI Processing (Google Gemini)**
 
-- **Summary Generation**: Intelligent article summarization
+- **Summary Generation**: Automatic, structured news summarization in Vietnamese
+- **Content Analysis**: Extracts key points, context, and insights from articles
 
 #### **Client Application (Flutter)**
 
 - **Cross-Platform UI**: Single codebase for all platforms
 - **State Management**: Provider pattern for reactive UI updates
-- **Real-time Updates**: Live data synchronization with backend
+- **Real-time Updates**: Live data sync with backend
+- **Advanced Search**: Full-text search with category filtering
+- **Bookmark Management**: Save, organize, and manage favorite articles
+- **Dark/Light Theme**: Automatic and manual theme switching
+- **Customizable Font Sizes**: Accessibility-focused reading experience
+- **Social Sharing**: Share news easily via native and web platforms
+- **In-app WebView**: Read full articles with ad-blocking support
 
 ## 🚀 Key Features
 
 ### 🤖 AI-Powered Intelligence
 
-- **Smart Summaries**: Transforms lengthy articles into concise, digestible content using Gemini AI
+- **Smart Summaries**: Gemini AI transforms lengthy articles into concise, structured content
+- **Contextual Analysis**: Highlights key points, context, and implications
 
 ### 📱 Multi-Platform Support
 
@@ -50,18 +58,18 @@ The GeNews system follows a microservices architecture with clear separation of 
 
 ### 🎨 User Experience
 
-- **Dark/Light Theme**: Automatic theme switching with system preference support
-- **Customizable Font Sizes**: Accessibility-focused reading experience
-- **Advanced Search**: Intelligent search with category filtering
+- **Dark/Light Theme**: System and manual switching
+- **Customizable Font Sizes**: For optimal readability
+- **Advanced Search**: Search by keyword, category, and source
 - **Bookmark Management**: Save and organize articles for later reading
-- **Social Sharing**: One-click sharing across social media platforms
+- **Social Sharing**: One-tap sharing to social platforms
 
 ### 🌐 Content Aggregation
 
 - **Multiple Sources**: RSS feeds, web scraping, and official APIs
-- **Real-time Updates**: Live news feed with refresh capabilities
+- **Real-time Updates**: Live news feed with refresh and offline support
 - **Vietnamese Language**: Localized content and interface
-- **Category Management**: Organized news by topics (Politics, Business, Sports, etc.)
+- **Category Management**: Organized by topics (Politics, Business, Sports, etc.)
 
 ## 🛠️ Tech Stack
 
@@ -69,8 +77,8 @@ The GeNews system follows a microservices architecture with clear separation of 
 
 - **Flutter 3.x**: Cross-platform UI framework
 - **Dart**: Primary programming language
-- **Provider**: State management solution
-- **WebView**: In-app web content rendering
+- **Provider**: State management
+- **WebView**: In-app web content rendering with ad-blocking
 - **Cached Network Image**: Optimized image loading
 
 ### Backend & Data Processing
@@ -82,7 +90,7 @@ The GeNews system follows a microservices architecture with clear separation of 
 
 ### Cloud Services
 
-- **Firebase/Firestore**: Real-time database
+- **Firebase/Firestore**: Real-time database and sync
 - **Google Gemini AI**: Content analysis and summarization
 - **Google Cloud Platform**: Infrastructure and hosting
 
@@ -90,24 +98,32 @@ The GeNews system follows a microservices architecture with clear separation of 
 
 ```
 genews/
-├── lib/
-│   ├── core/                    # Core utilities and constants
-│   ├── features/
-│   │   ├── home/               # News browsing features
-│   │   │   ├── data/           # Data models and repositories
-│   │   │   ├── presentation/   # UI screens and widgets
-│   │   │   └── providers/      # State management
-│   │   └── shared/             # Shared components
-│   ├── shared/                 # Common widgets and styles
-│   └── main.dart              # Application entry point
-├── android/                   # Android-specific configuration
-├── ios/                       # iOS-specific configuration
-├── web/                       # Web deployment files
-├── windows/                   # Windows desktop configuration
-├── linux/                     # Linux desktop configuration
-├── macos/                     # macOS configuration
-├── python/                    # Backend data processing
-└── assets/                    # Static resources
+├── .env
+├── .gitignore
+├── .metadata
+├── analysis_options.yaml
+├── devtools_options.yaml
+├── firebase.json
+├── genews.iml
+├── pubspec.lock
+├── pubspec.yaml
+├── README.md
+├── android/           # Android-specific configuration
+├── assets/            # Static resources (icons, images)
+├── build/             # Build outputs (auto-generated)
+├── ios/               # iOS-specific configuration
+├── lib/               # Main Flutter/Dart source code
+│   ├── core/          # Core utilities and constants
+│   ├── features/      # Feature modules (news, bookmarks, settings, etc.)
+│   ├── shared/        # Common widgets, styles, and utilities
+│   └── main.dart      # Application entry point
+├── linux/             # Linux desktop configuration
+├── macos/             # macOS configuration
+├── python/            # Backend data processing scripts
+├── test/              # Unit and widget tests
+├── web/               # Web deployment files
+├── windows/           # Windows desktop configuration
+└── .idea/             # IDE settings (for JetBrains IDEs)
 ```
 
 ## 🚀 Getting Started
