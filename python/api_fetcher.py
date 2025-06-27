@@ -245,16 +245,13 @@ def main():
     try:
         fetcher = APIFetcher()
         success = fetcher.fetch_all_categories()
-        print("\n" + "=" * 70)
         if success:
-            print("🎉 SUCCESS! All categories fetched and saved!")
-            print("Your Flutter app can now access all articles from one collection!")
+            logging.info("🎉 SUCCESS! All categories fetched and saved!")
         else:
-            print("💥 PROCESS FAILED! Check the errors above.")
-        print("=" * 70)
+            logging.warning("💥 PROCESS FAILED! Check the errors above.")
+
     except Exception as e:
         logging.critical(f"Critical Error: {e}", exc_info=True)
-        print(f"💥 Critical Error: {e}")
         traceback.print_exc()
 
 

@@ -503,20 +503,16 @@ def main():
         fetcher = SeleniumFetcher()
         success = fetcher.fetch_all_categories()
 
-        print("\n" + "=" * 70)
         if success:
-            print("🎉 SUCCESS! Dantri news fetched and saved!")
-            print("Your Flutter app can now access all articles from one collection!")
+            logging.info("🎉 SUCCESS! Dantri news fetched and saved!")
         else:
-            print("💥 PROCESS FAILED! Check the errors above.")
-        print("=" * 70)
+            logging.warning("💥 PROCESS FAILED! Check the errors above.")
 
         # Optionally scrape content for some articles
         # fetcher.scrape_content_for_existing_articles(limit=5)
 
     except Exception as e:
         logging.critical(f"Critical Error: {e}", exc_info=True)
-        print(f"💥 Critical Error: {e}")
         traceback.print_exc()
 
 
