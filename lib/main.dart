@@ -16,7 +16,6 @@ void main() async {
 
   runApp(
     MultiProvider(
-      // Bọc GeNewsApp với MultiProvider
       providers: [
         ChangeNotifierProvider(create: (context) => NewsProvider()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
@@ -25,14 +24,4 @@ void main() async {
       child: const GeNewsApp(),
     ),
   );
-}
-
-// Keep old MyApp class for now during transition
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const GeNewsApp();
-  }
 }
