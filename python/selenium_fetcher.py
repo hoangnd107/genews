@@ -3,25 +3,24 @@ import sys
 import time
 import logging
 import traceback
-import hashlib
 from datetime import datetime
-from dotenv import load_dotenv
 from typing import List, Dict, Any, Optional
-
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
+from base_fetcher import BaseFetcher
 
-class SeleniumFetcher:
-    """Fetches news from Dantri.com.vn using Selenium and saves to Firestore."""
+
+class SeleniumFetcher(BaseFetcher):
+    """
+    Fetches news from Dantri.com.vn using Selenium and saves to Firestore.
+    Inherits common functionality from BaseFetcher.
+    """
 
     BASE_URL = "https://dantri.com.vn"
     SOURCE_CONFIG = {
@@ -46,7 +45,7 @@ class SeleniumFetcher:
         "du-lich": "tourism",
         "tin-moi-nhat": "top",
         "o-to-xe-may": "auto",
-        "viec-lam": "jobs",
+        "viec-lam": "job",
         "bat-dong-san": "real-estate",
         "phap-luat": "law",
         "doi-song": "lifestyle",
@@ -54,94 +53,56 @@ class SeleniumFetcher:
     }
 
     def __init__(self):
-        self._setup_logging()
-        self._load_config()
-        self._init_firebase()
-        self._init_selenium()
-
-    def _setup_logging(self):
-        """Configure logging format and level."""
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            stream=sys.stdout,
-        )
-
-    def _load_config(self):
-        """Load configuration from .env file."""
-        env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-        load_dotenv(env_path)
-        self.articles_collection = os.getenv("ARTICLES_COLLECTION", "articles")
-        self.news_collection = os.getenv("NEWS_COLLECTION", "news_data")
-
-    def _init_firebase(self):
-        """Initialize Firebase Admin SDK."""
-        service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-        if not service_account_path:
-            raise ValueError(
-                "FIREBASE_SERVICE_ACCOUNT_PATH environment variable is required"
-            )
-
-        if not os.path.isabs(service_account_path):
-            service_account_path = os.path.join(
-                os.path.dirname(__file__), service_account_path
-            )
-
-        if not os.path.exists(service_account_path):
-            raise FileNotFoundError(
-                f"Service account file not found: {service_account_path}"
-            )
-
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(service_account_path)
-            firebase_admin.initialize_app(cred)
-
-        self.db = firestore.client()
-        logging.info("Firebase initialized successfully.")
+        """Initializes the Selenium fetcher."""
+        super().__init__(source_id=self.SOURCE_CONFIG["source_id"])
+        self.driver = None
+        self.wait = None
 
     def _init_selenium(self):
-        """Initialize Selenium WebDriver with Chrome options."""
+        """Initializes the Selenium WebDriver with Chrome options."""
+        if self.driver:
+            logging.info("Selenium WebDriver is already initialized.")
+            return
+
+        logging.info("Initializing Selenium WebDriver...")
         chrome_options = Options()
-        chrome_options.add_argument("--headless")  # Run in background
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--disable-software-rasterizer")
-        chrome_options.add_argument("--disable-background-timer-throttling")
-        chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-        chrome_options.add_argument("--disable-renderer-backgrounding")
-        chrome_options.add_argument("--disable-features=TranslateUI")
-        chrome_options.add_argument("--disable-ipc-flooding-protection")
-        chrome_options.add_argument("--disable-webgl")
-        chrome_options.add_argument("--disable-webgl2")
-        chrome_options.add_argument("--disable-3d-apis")
-        chrome_options.add_argument("--disable-accelerated-2d-canvas")
-        chrome_options.add_argument("--disable-accelerated-jpeg-decoding")
-        chrome_options.add_argument("--disable-accelerated-mjpeg-decode")
-        chrome_options.add_argument("--disable-accelerated-video-decode")
-        chrome_options.add_argument("--disable-accelerated-video-encode")
-        chrome_options.add_argument("--disable-background-media-processing")
-        chrome_options.add_argument("--disable-background-timer-throttling")
-        chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-        chrome_options.add_argument("--use-gl=swiftshader")
-        chrome_options.add_argument("--enable-unsafe-swiftshader")
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument(
             "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
+        # Add more optimized options for performance
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 
         try:
-            service = Service(ChromeDriverManager().install())
+            # For Cloud Run/Docker: use a fixed path provided by the environment.
+            # For local development: use ChromeDriverManager.
+            chrome_driver_path = os.getenv("CHROME_DRIVER_PATH")
+            if chrome_driver_path and os.path.exists(chrome_driver_path):
+                logging.info(f"Using ChromeDriver from path: {chrome_driver_path}")
+                service = Service(executable_path=chrome_driver_path)
+            else:
+                logging.info("ChromeDriver path not found, using ChromeDriverManager.")
+                service = Service(ChromeDriverManager().install())
+
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             self.wait = WebDriverWait(self.driver, 10)
             logging.info("Selenium WebDriver initialized successfully.")
         except Exception as e:
-            logging.error(f"Error initializing Selenium: {e}")
+            logging.error(f"Error initializing Selenium: {e}", exc_info=True)
             raise
 
-    def _generate_article_id(self, link: str) -> str:
-        """Generate unique article ID from link using MD5 hash."""
-        return hashlib.md5(link.encode()).hexdigest()
+    def _close_selenium(self):
+        """Closes the Selenium WebDriver if it's running."""
+        if self.driver:
+            self.driver.quit()
+            self.driver = None
+            self.wait = None
+            logging.info("Selenium WebDriver closed.")
 
     def _extract_full_url(self, relative_url: str) -> str:
         """Convert relative URL to full URL."""
@@ -160,16 +121,16 @@ class SeleniumFetcher:
         link: str,
         description: str,
         image_url: Optional[str],
-        category_slug: str,
         category_name: str,
     ) -> Dict[str, Any]:
-        """Create standardized article dictionary."""
+        """Creates a standardized article dictionary."""
         now = datetime.now().isoformat()
+        full_link = self._extract_full_url(link)
 
         return {
-            "article_id": self._generate_article_id(link),
+            "article_id": self._generate_article_id(full_link),
             "title": title.strip(),
-            "link": self._extract_full_url(link),
+            "link": full_link,
             "creator": self.SOURCE_CONFIG["creator"],
             "video_url": None,
             "description": (
@@ -178,11 +139,9 @@ class SeleniumFetcher:
             "content": (
                 description.strip() if description else "No description available."
             ),
-            "pubDate": now,
-            "pubDateTZ": "UTC+07:00",
+            "pubDate": now,  # Dantri doesn't provide pubDate in list view
             "image_url": self._extract_full_url(image_url) if image_url else None,
             "source_id": self.SOURCE_CONFIG["source_id"],
-            "source_priority": 1,
             "source_name": self.SOURCE_CONFIG["source_name"],
             "source_url": self.SOURCE_CONFIG["source_url"],
             "source_icon": self.SOURCE_CONFIG["source_icon"],
@@ -190,7 +149,6 @@ class SeleniumFetcher:
             "country": self.SOURCE_CONFIG["country"],
             "category": [category_name],
             "ai_tag": "SELENIUM_SCRAPED",
-            "duplicate": False,
             "created_at": now,
             "updated_at": now,
         }
@@ -198,72 +156,67 @@ class SeleniumFetcher:
     def fetch_category_articles(
         self, category_slug: str, category_name: str
     ) -> List[Dict[str, Any]]:
-        """Fetch articles from a specific category page."""
+        """Fetches articles from a specific category page."""
         category_url = f"{self.BASE_URL}/{category_slug}.htm"
         logging.info(f"Fetching articles from: {category_url}")
 
         try:
             self.driver.get(category_url)
-            time.sleep(3)  # Wait for page to load
+            time.sleep(3)  # Wait for dynamic content to load
 
-            # Find all article items
-            article_elements = self.driver.find_elements(By.CLASS_NAME, "article-item")
+            article_elements = self.driver.find_elements(
+                By.CSS_SELECTOR, "article.article-item"
+            )
 
             if not article_elements:
                 logging.warning(
-                    f"No article items found for category '{category_name}'"
+                    f"No article items found for category '{category_name}' at {category_url}"
                 )
                 return []
 
-            logging.info(f"Found {len(article_elements)} articles in '{category_name}'")
+            logging.info(
+                f"Found {len(article_elements)} potential articles in '{category_name}'"
+            )
             articles = []
 
             for element in article_elements:
                 try:
-                    # Extract title and link
                     title_element = element.find_element(
-                        By.CSS_SELECTOR, ".article-title a"
+                        By.CSS_SELECTOR, "h3.article-title a"
                     )
                     title = title_element.text.strip()
                     link = title_element.get_attribute("href")
 
-                    # Extract description
                     description = ""
                     try:
                         desc_element = element.find_element(
-                            By.CLASS_NAME, "article-excerpt"
+                            By.CSS_SELECTOR, ".article-excerpt"
                         )
                         description = desc_element.text.strip()
                     except:
                         pass  # Description is optional
 
-                    # Extract image URL
                     image_url = None
                     try:
                         thumb_element = element.find_element(
-                            By.CSS_SELECTOR, ".article-thumb a img"
+                            By.CSS_SELECTOR, ".article-thumb img"
                         )
-                        image_url = thumb_element.get_attribute("src")
-                        if not image_url:
-                            image_url = thumb_element.get_attribute(
-                                "data-src"
-                            )  # Lazy loading
+                        image_url = thumb_element.get_attribute(
+                            "data-src"
+                        ) or thumb_element.get_attribute("src")
                     except:
                         pass  # Image is optional
 
                     if title and link:
                         article = self._create_article_dict(
-                            title,
-                            link,
-                            description,
-                            image_url,
-                            category_slug,
-                            category_name,
+                            title, link, description, image_url, category_name
                         )
                         articles.append(article)
 
                 except Exception as e:
-                    logging.warning(f"Error extracting article data: {e}")
+                    logging.warning(
+                        f"Could not extract data from an article element: {e}"
+                    )
                     continue
 
             logging.info(
@@ -272,155 +225,64 @@ class SeleniumFetcher:
             return articles
 
         except Exception as e:
-            logging.error(f"Error fetching category '{category_name}': {e}")
+            logging.error(
+                f"Error fetching category page '{category_name}': {e}", exc_info=True
+            )
             return []
 
-    def save_articles_to_firestore(
-        self, articles: List[Dict[str, Any]], category_name: str
-    ) -> int:
-        """Save articles to Firestore, skipping duplicates."""
-        if not articles:
-            logging.warning(f"No articles to save for category '{category_name}'")
-            return 0
+    def fetch_all(self) -> bool:
+        """Fetches news for all categories defined in the configuration."""
+        try:
+            self._init_selenium()
+            total_saved = 0
+            total_skipped = 0
+            successful_categories = []
+            failed_categories = []
 
-        batch_size = 500
-        saved = 0
-        skipped = 0
-
-        for i in range(0, len(articles), batch_size):
-            batch = self.db.batch()
-            batch_articles = articles[i : i + batch_size]
-            writes = 0
-
-            for article in batch_articles:
-                if article.get("article_id"):
-                    doc_ref = self.db.collection(self.articles_collection).document(
-                        article["article_id"]
-                    )
-                    # Check if article already exists
-                    if not doc_ref.get().exists:
-                        batch.set(doc_ref, article)
-                        writes += 1
-                    else:
-                        skipped += 1
-
-            if writes > 0:
-                batch.commit()
+            for i, (slug, name) in enumerate(self.CATEGORIES.items(), 1):
                 logging.info(
-                    f"Committed batch of {writes} new articles for '{category_name}'."
+                    f"--- Processing category {i}/{len(self.CATEGORIES)}: {name} ---"
                 )
-                saved += writes
-
-        logging.info(
-            f"Category '{category_name}': Saved {saved} new, skipped {skipped} existing."
-        )
-        return saved
-
-    def fetch_category_news(self, category_slug: str, category_name: str) -> int:
-        """Fetch and save news for a specific category."""
-        logging.info(f"Processing category: '{category_name.upper()}'")
-
-        try:
-            articles = self.fetch_category_articles(category_slug, category_name)
-            if not articles:
-                logging.warning(f"No articles found for category '{category_name}'")
-                return 0
-
-            saved = self.save_articles_to_firestore(articles, category_name)
-            logging.info(
-                f"Category '{category_name}' completed: {saved} new articles saved!"
-            )
-            return saved
-
-        except Exception as e:
-            logging.error(
-                f"Error processing category '{category_name}': {e}", exc_info=True
-            )
-            return 0
-
-    def update_summary_document(
-        self, total_articles: int, categories_processed: List[str], total_skipped: int
-    ):
-        """Update summary document in Firestore."""
-        try:
-            doc_ref = self.db.collection(self.news_collection).document(
-                "latest_selenium"
-            )
-            doc_ref.set(
-                {
-                    "status": "success",
-                    "total_articles_saved": total_articles,
-                    "total_articles_skipped": total_skipped,
-                    "categories_processed": categories_processed,
-                    "last_updated": datetime.now(),
-                    "fetch_timestamp": datetime.now().isoformat(),
-                    "fetch_type": "selenium_scraping",
-                    "source": "dantri.com.vn",
-                }
-            )
-            logging.info(
-                f"Updated summary: {total_articles} new, {total_skipped} skipped from {len(categories_processed)} categories"
-            )
-            return True
-        except Exception as e:
-            logging.error(f"Error updating summary document: {e}", exc_info=True)
-            return False
-
-    def fetch_all_categories(self):
-        """Fetch news for all categories."""
-        logging.info("=" * 60)
-        logging.info("🚀 STARTING DANTRI SELENIUM FETCH PROCESS")
-        logging.info("=" * 60)
-
-        start_time = datetime.now()
-        total_saved = 0
-        total_skipped = 0
-        successful = []
-        failed = []
-
-        try:
-            for i, (category_slug, category_name) in enumerate(
-                self.CATEGORIES.items(), 1
-            ):
-                logging.info(
-                    f"Processing category {i}/{len(self.CATEGORIES)}: {category_name}"
-                )
-
-                saved = self.fetch_category_news(category_slug, category_name)
-
-                if saved > 0:
-                    successful.append(category_name)
+                articles = self.fetch_category_articles(slug, name)
+                if articles:
+                    saved, skipped = self.save_articles_to_firestore(articles, name)
+                    if saved > 0:
+                        successful_categories.append(name)
                     total_saved += saved
+                    total_skipped += skipped
                 else:
-                    failed.append(category_name)
+                    failed_categories.append(name)
 
-                # Add delay between categories to be respectful
                 if i < len(self.CATEGORIES):
                     logging.info("Waiting 5 seconds before next category...")
                     time.sleep(5)
-
+        except Exception as e:
+            logging.critical(
+                f"A critical error occurred in fetch_all: {e}", exc_info=True
+            )
+            # Ensure summary is updated even on failure
+            self.update_summary_document(0, 0, [], "selenium_scrape", status="failed")
+            return False  # Indicate failure
         finally:
-            # Always close the driver
-            if hasattr(self, "driver"):
-                self.driver.quit()
-                logging.info("Selenium WebDriver closed.")
+            self._close_selenium()
 
-        duration = datetime.now() - start_time
-        self.update_summary_document(total_saved, successful, total_skipped)
-
-        logging.info("🏁 PROCESS COMPLETED!")
-        logging.info(f"⏱️  Total time: {duration}")
-        logging.info(
-            f"🏷️  Categories processed: {len(successful)}/{len(self.CATEGORIES)}"
+        self.update_summary_document(
+            total_saved=total_saved,
+            total_skipped=total_skipped,
+            categories_processed=successful_categories,
+            fetch_type="selenium_scrape",
         )
-        logging.info(f"📰 Total new articles saved: {total_saved}")
-        logging.info(f"🔄 Total existing articles skipped: {total_skipped}")
-        logging.info(f"💾 All articles saved to collection: {self.articles_collection}")
 
-        if successful:
-            logging.info(f"✅ Successful categories: {', '.join(successful)}")
-        if failed:
-            logging.info(f"❌ Failed categories: {', '.join(failed)}")
+        logging.info(f"Total new articles saved: {total_saved}")
+        logging.info(f"Total existing articles skipped: {total_skipped}")
+        if successful_categories:
+            logging.info(
+                f"✅ Successful categories: {', '.join(successful_categories)}"
+            )
+        if failed_categories:
+            logging.warning(
+                f"❌ Failed/Empty categories: {', '.join(failed_categories)}"
+            )
 
         return total_saved > 0
 
@@ -434,9 +296,7 @@ class SeleniumFetcher:
             content_selectors = [
                 ".singular-content",
                 ".article-content",
-                ".detail-content",
-                ".news-content",
-                "[data-field='body']",
+                "div.e-magazine__body",
             ]
 
             for selector in content_selectors:
@@ -445,6 +305,17 @@ class SeleniumFetcher:
                         By.CSS_SELECTOR, selector
                     )
                     if content_element:
+                        # Remove unwanted elements before getting text
+                        for unwanted_selector in [".ads", "script", "style"]:
+                            try:
+                                for el in content_element.find_elements(
+                                    By.CSS_SELECTOR, unwanted_selector
+                                ):
+                                    self.driver.execute_script(
+                                        "arguments[0].remove()", el
+                                    )
+                            except:
+                                pass
                         return content_element.text.strip()
                 except:
                     continue
@@ -456,17 +327,15 @@ class SeleniumFetcher:
             return "Content scraping failed."
 
     def scrape_content_for_existing_articles(self, limit: int = 10):
-        """Find articles missing full content and scrape it."""
+        """Finds articles missing full content and scrapes it."""
         logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
 
         try:
-            # Reinitialize driver for content scraping
             self._init_selenium()
-
             docs = (
                 self.db.collection(self.articles_collection)
                 .where("content", "==", "CONTENT_TO_BE_SCRAPED")
-                .where("source_id", "==", "dantri")
+                .where("source_id", "==", self.source_id)
                 .limit(limit)
                 .stream()
             )
@@ -481,11 +350,15 @@ class SeleniumFetcher:
                 logging.info(f"Scraping: {article.get('title', doc.id)[:60]}...")
                 full_content = self.scrape_full_article_content(url)
 
-                doc.reference.update(
-                    {"content": full_content, "updated_at": datetime.now().isoformat()}
-                )
-                updated_count += 1
-                time.sleep(3)  # Be respectful
+                if full_content and "Content scraping failed" not in full_content:
+                    doc.reference.update(
+                        {
+                            "content": full_content,
+                            "updated_at": datetime.now().isoformat(),
+                        }
+                    )
+                    updated_count += 1
+                    time.sleep(3)  # Be respectful
 
             logging.info(f"✅ Updated content for {updated_count} articles.")
 
@@ -494,27 +367,13 @@ class SeleniumFetcher:
                 "An error occurred during content scraping batch.", exc_info=True
             )
         finally:
-            if hasattr(self, "driver"):
-                self.driver.quit()
+            self._close_selenium()
 
 
 def main():
     """Main function to run the fetcher."""
-    try:
-        fetcher = SeleniumFetcher()
-        success = fetcher.fetch_all_categories()
-
-        if success:
-            logging.info("🎉 SUCCESS! Dantri news fetched and saved!")
-        else:
-            logging.warning("💥 PROCESS FAILED! Check the errors above.")
-
-        # Optionally scrape content for some articles
-        # fetcher.scrape_content_for_existing_articles(limit=5)
-
-    except Exception as e:
-        logging.critical(f"Critical Error: {e}", exc_info=True)
-        traceback.print_exc()
+    fetcher = SeleniumFetcher()
+    fetcher.run()
 
 
 if __name__ == "__main__":

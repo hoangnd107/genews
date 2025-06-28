@@ -1,25 +1,15 @@
 import feedparser
 import requests
-import hashlib
-import json
 import logging
-import os
-import re
-import sys
 import time
-import traceback
 import argparse
 from bs4 import BeautifulSoup
 from datetime import datetime
-from dotenv import load_dotenv
-from urllib.parse import urljoin, urlparse
 from typing import List, Dict, Any, Optional, Tuple
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+from base_fetcher import BaseFetcher
 
 # --- Configuration ---
-# Centralized configuration for easier management
 VNEXPRESS_CONFIG = {
     "source_id": "vnexpress",
     "source_name": "VnExpress",
@@ -61,53 +51,17 @@ VNEXPRESS_CONFIG = {
 }
 
 
-class RSSFetcher:
+class RSSFetcher(BaseFetcher):
     """
     Fetches, parses, and stores articles from VnExpress RSS feeds into Firestore.
+    Inherits common functionality from BaseFetcher.
     """
 
     def __init__(self):
         """Initializes the fetcher, configuration, and services."""
-        self._setup_logging()
-        self._load_config()
-        self._init_firebase()
-        self._init_session()
-
-    def _setup_logging(self):
-        """Configures the logging format and level."""
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            stream=sys.stdout,
-        )
-
-    def _load_config(self):
-        """Loads configuration from .env and the config dictionary."""
-        env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-        load_dotenv(env_path)
-
-        self.articles_collection = os.getenv("ARTICLES_COLLECTION", "articles")
-        self.summary_collection = os.getenv("NEWS_COLLECTION", "news_data")
+        super().__init__(source_id=VNEXPRESS_CONFIG["source_id"])
         self.config = VNEXPRESS_CONFIG
-
-    def _init_firebase(self):
-        """Initializes the Firebase Admin SDK."""
-        service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-        if not service_account_path:
-            raise ValueError("FIREBASE_SERVICE_ACCOUNT_PATH is not set in .env file")
-
-        abs_path = service_account_path
-        if not os.path.isabs(abs_path):
-            abs_path = os.path.join(os.path.dirname(__file__), abs_path)
-
-        if not os.path.exists(abs_path):
-            raise FileNotFoundError(f"Service account file not found: {abs_path}")
-
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(abs_path)
-            firebase_admin.initialize_app(cred)
-        self.db = firestore.client()
-        logging.info("Firebase initialized successfully.")
+        self._init_session()
 
     def _init_session(self):
         """Initializes a requests session with a user-agent."""
@@ -119,18 +73,14 @@ class RSSFetcher:
         )
         logging.info("Requests session initialized.")
 
-    def _generate_article_id(self, link: str) -> str:
-        """Generates a unique article ID from the link using MD5 hash."""
-        return hashlib.md5(link.encode()).hexdigest()
-
     def _extract_image_from_description(self, description: str) -> Optional[str]:
         """Extracts the first image URL from the description's HTML."""
         try:
             soup = BeautifulSoup(description, "html.parser")
             img_tag = soup.find("img")
             return img_tag["src"] if img_tag and img_tag.get("src") else None
-        except Exception as e:
-            logging.warning(f"Could not extract image from description: {e}")
+        except Exception:
+            # logging.warning(f"Could not extract image from description: {e}")
             return None
 
     def _extract_description_text(self, description: str) -> str:
@@ -159,14 +109,18 @@ class RSSFetcher:
             return datetime.now().isoformat()
 
     def _parse_rss_entry(
-        self, entry: Dict[str, Any], category_slug: str, category_name: str
-    ) -> Dict[str, Any]:
+        self, entry: Dict[str, Any], category_name: str
+    ) -> Optional[Dict[str, Any]]:
         """Parses a single feedparser entry into a structured article dictionary."""
         link = entry.get("link")
+        if not link:
+            logging.warning(f"Skipping entry with no link: {entry.get('title')}")
+            return None
+
         title = entry.get("title", "No Title")
         description_html = entry.get("description", "")
-
         description_text = self._extract_description_text(description_html)
+        now = datetime.now().isoformat()
 
         return {
             "article_id": self._generate_article_id(link),
@@ -186,8 +140,8 @@ class RSSFetcher:
             "country": self.config["country"],
             "category": [category_name],
             "ai_tag": "RSS_PARSED",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": now,
+            "updated_at": now,
         }
 
     def fetch_rss_category(
@@ -195,15 +149,16 @@ class RSSFetcher:
     ) -> List[Dict[str, Any]]:
         """Fetches and parses all articles from a specific RSS category."""
         rss_url = f"{self.config['base_rss_url']}/{category_slug}.rss"
+        # Special case for the main page RSS feed
         if category_slug == "trang-chu":
-            rss_url = f"{self.config['base_rss_url']}.rss"
+            rss_url = f"{self.config['base_url']}/rss/tin-moi-nhat.rss"
 
         logging.info(f"Fetching RSS from: {rss_url}")
         feed = feedparser.parse(rss_url)
 
         if feed.bozo:
             logging.warning(
-                f"Feed for '{category_name}' is ill-formed. Bozo reason: {feed.bozo_exception}"
+                f"Feed for '{category_name}' is ill-formed. Reason: {feed.bozo_exception}"
             )
 
         if not feed.entries:
@@ -215,63 +170,21 @@ class RSSFetcher:
         articles = []
         for entry in feed.entries:
             try:
-                if "link" in entry and "title" in entry:
-                    articles.append(
-                        self._parse_rss_entry(entry, category_slug, category_name)
-                    )
+                parsed_article = self._parse_rss_entry(entry, category_name)
+                if parsed_article:
+                    articles.append(parsed_article)
             except Exception as e:
-                logging.error(f"Error processing an article in '{category_name}': {e}")
+                logging.error(
+                    f"Error processing an article in '{category_name}': {e}",
+                    exc_info=True,
+                )
         return articles
 
-    def save_articles_to_firestore(
-        self, articles: List[Dict[str, Any]], category_name: str
-    ) -> Tuple[int, int]:
-        """Saves a list of articles to Firestore, skipping duplicates."""
-        if not articles:
-            return 0, 0
-
-        logging.info(
-            f"Saving {len(articles)} articles from '{category_name}' to Firestore..."
-        )
-        total_articles_saved = 0
-        total_articles_skipped = 0
-
-        for i in range(0, len(articles), 500):  # Firestore batch limit is 500
-            batch = self.db.batch()
-            batch_articles = articles[i : i + 500]
-
-            writes_in_this_batch = 0
-            for article in batch_articles:
-                article_ref = self.db.collection(self.articles_collection).document(
-                    article["article_id"]
-                )
-                # This check is inefficient but preserves original behavior minus the bug.
-                # It performs one read operation per article.
-                if not article_ref.get().exists:
-                    batch.set(article_ref, article)
-                    writes_in_this_batch += 1
-                else:
-                    total_articles_skipped += 1
-
-            # Only commit if there are actual writes in this specific batch
-            if writes_in_this_batch > 0:
-                batch.commit()
-                logging.info(
-                    f"Committed a batch of {writes_in_this_batch} new articles for '{category_name}'."
-                )
-                total_articles_saved += writes_in_this_batch
-
-        logging.info(
-            f"'{category_name}': Saved {total_articles_saved} new, skipped {total_articles_skipped} existing."
-        )
-        return total_articles_saved, total_articles_skipped
-
-    def fetch_all_categories(self) -> bool:
+    def fetch_all(self) -> bool:
         """Iterates through all categories, fetches, and saves articles."""
-        logging.info("🚀 STARTING VNEXPRESS RSS FETCH PROCESS")
-        start_time = time.time()
         total_saved = 0
         total_skipped = 0
+        successful_categories = []
 
         categories = self.config["categories"]
         for i, (slug, name) in enumerate(categories.items(), 1):
@@ -280,6 +193,8 @@ class RSSFetcher:
                 articles = self.fetch_rss_category(slug, name)
                 if articles:
                     saved, skipped = self.save_articles_to_firestore(articles, name)
+                    if saved > 0:
+                        successful_categories.append(name)
                     total_saved += saved
                     total_skipped += skipped
                 time.sleep(1)  # Be respectful to the server
@@ -288,11 +203,12 @@ class RSSFetcher:
                     f"Failed to process category '{name}': {e}", exc_info=True
                 )
 
-        duration = time.time() - start_time
-        logging.info("🏁 PROCESS COMPLETED!")
-        logging.info(f"⏱️  Total time: {duration:.2f} seconds")
-        logging.info(f"📰 Total new articles saved: {total_saved}")
-        logging.info(f"🔄 Total existing articles skipped: {total_skipped}")
+        self.update_summary_document(
+            total_saved=total_saved,
+            total_skipped=total_skipped,
+            categories_processed=successful_categories,
+            fetch_type="rss_feed",
+        )
         return total_saved > 0
 
     def scrape_full_article_content(self, url: str) -> str:
@@ -305,7 +221,10 @@ class RSSFetcher:
             for selector in self.config["content_selectors"]:
                 content_div = soup.select_one(selector)
                 if content_div:
-                    for unwanted in content_div.find_all(["script", "style", ".ads"]):
+                    # Remove unwanted tags like scripts, styles, and ads
+                    for unwanted in content_div.find_all(
+                        ["script", "style", ".ads", "figure"]
+                    ):
                         unwanted.decompose()
                     return content_div.get_text(separator="\n", strip=True)
 
@@ -324,6 +243,7 @@ class RSSFetcher:
             docs = (
                 self.db.collection(self.articles_collection)
                 .where("content", "==", "CONTENT_TO_BE_SCRAPED")
+                .where("source_id", "==", self.source_id)
                 .limit(limit)
                 .stream()
             )
@@ -338,11 +258,15 @@ class RSSFetcher:
                 logging.info(f"Scraping: {article.get('title', doc.id)[:60]}...")
                 full_content = self.scrape_full_article_content(url)
 
-                doc.reference.update(
-                    {"content": full_content, "updated_at": datetime.now().isoformat()}
-                )
-                updated_count += 1
-                time.sleep(2)  # Be respectful
+                if full_content and "Content scraping failed" not in full_content:
+                    doc.reference.update(
+                        {
+                            "content": full_content,
+                            "updated_at": datetime.now().isoformat(),
+                        }
+                    )
+                    updated_count += 1
+                    time.sleep(2)  # Be respectful
 
             logging.info(f"✅ Updated content for {updated_count} articles.")
         except Exception as e:
@@ -365,21 +289,11 @@ def main():
 
     args = parser.parse_args()
 
-    try:
-        fetcher = RSSFetcher()
-        success = fetcher.fetch_all_categories()
+    fetcher = RSSFetcher()
+    fetcher.run()
 
-        if success:
-            logging.info("🎉 SUCCESS! VnExpress RSS news fetched and saved.")
-        else:
-            logging.warning("PROCESS FINISHED, but no new articles were saved.")
-
-        if args.scrape_content is not None:
-            fetcher.scrape_content_for_existing_articles(limit=args.scrape_content)
-
-    except Exception as e:
-        logging.critical(f"A critical error occurred: {e}", exc_info=True)
-        sys.exit(1)
+    if args.scrape_content is not None:
+        fetcher.scrape_content_for_existing_articles(limit=args.scrape_content)
 
 
 if __name__ == "__main__":
