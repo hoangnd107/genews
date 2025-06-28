@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:genews/shared/widgets/migration_test_widget.dart';
 import 'package:genews/shared/widgets/firestore_category_test_widget.dart';
-import 'package:genews/shared/services/migration_test_service.dart';
 import 'package:genews/shared/services/firestore_test_service.dart';
 import 'package:genews/shared/services/firestore_permission_helper.dart';
 import 'package:genews/shared/styles/colors.dart';
 
-/// Debug screen để test migration và Firestore connectivity
+/// Debug screen để test Firestore connectivity
 /// Chỉ sử dụng trong development
 class DebugScreen extends StatefulWidget {
   const DebugScreen({super.key});
@@ -56,50 +54,6 @@ class _DebugScreenState extends State<DebugScreen> {
             // Quick Test Buttons
             ElevatedButton.icon(
               onPressed: () async {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Testing migration...')),
-                );
-
-                try {
-                  final results = await MigrationTestService.testMigration();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          results['success'] == true
-                              ? '✅ Migration test passed!'
-                              : '❌ Migration test failed!',
-                        ),
-                        backgroundColor:
-                            results['success'] == true
-                                ? Colors.green
-                                : Colors.red,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('❌ Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.flash_on),
-              label: const Text('Quick Migration Test'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            ElevatedButton.icon(
-              onPressed: () async {
                 try {
                   final result =
                       await FirestoreTestService.testFirestoreConnection();
@@ -133,25 +87,6 @@ class _DebugScreenState extends State<DebugScreen> {
               label: const Text('Test Firestore Connection'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            ElevatedButton.icon(
-              onPressed: () {
-                MigrationTestService.printMigrationSummary();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('📊 Migration summary printed to console'),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.info),
-              label: const Text('Print Summary to Console'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -221,25 +156,6 @@ class _DebugScreenState extends State<DebugScreen> {
             ),
 
             const SizedBox(height: 16),
-
-            // Detailed Test Widget
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MigrationTestWidget(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.science),
-              label: const Text('Detailed Migration Test'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
 
             const SizedBox(height: 24),
 

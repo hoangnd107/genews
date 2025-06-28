@@ -9,24 +9,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-// MIGRATION TESTING: Uncomment below imports to test migration
-// import 'package:genews/shared/services/migration_test_service.dart';
-// import 'package:genews/shared/widgets/migration_test_widget.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await OfflineFirst.init();
   await initializeDateFormatting('vi_VN', null);
-
-  // MIGRATION TESTING: Uncomment to run migration test on startup
-  // try {
-  //   final results = await MigrationTestService.testMigration();
-  //   debugPrint('Migration Test Results: $results');
-  //   MigrationTestService.printMigrationSummary();
-  // } catch (e) {
-  //   debugPrint('Migration test failed: $e');
-  // }
 
   runApp(
     MultiProvider(
