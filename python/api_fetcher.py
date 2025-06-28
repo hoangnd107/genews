@@ -83,11 +83,10 @@ class APIFetcher:
                     "article_id": article.get("article_id"),
                     "title": article.get("title"),
                     "link": article.get("link"),
-                    "keywords": article.get("keywords", []),
                     "creator": article.get("creator", []),
                     "video_url": article.get("video_url"),
                     "description": article.get("description"),
-                    "content": article.get("content", "ONLY AVAILABLE IN PAID PLANS"),
+                    "content": article.get("description"),
                     "pubDate": article.get("pubDate"),
                     "pubDateTZ": article.get("pubDateTZ", "UTC"),
                     "image_url": article.get("image_url"),
@@ -99,23 +98,7 @@ class APIFetcher:
                     "language": article.get("language"),
                     "country": article.get("country", []),
                     "category": article.get("category", []),
-                    "ai_tag": article.get(
-                        "ai_tag", "ONLY AVAILABLE IN PROFESSIONAL AND CORPORATE PLANS"
-                    ),
-                    "sentiment": article.get(
-                        "sentiment",
-                        "ONLY AVAILABLE IN PROFESSIONAL AND CORPORATE PLANS",
-                    ),
-                    "sentiment_stats": article.get(
-                        "sentiment_stats",
-                        "ONLY AVAILABLE IN PROFESSIONAL AND CORPORATE PLANS",
-                    ),
-                    "ai_region": article.get(
-                        "ai_region", "ONLY AVAILABLE IN CORPORATE PLANS"
-                    ),
-                    "ai_org": article.get(
-                        "ai_org", "ONLY AVAILABLE IN CORPORATE PLANS"
-                    ),
+                    "ai_tag": article.get("Call_API"),
                     "duplicate": article.get("duplicate", False),
                     "created_at": now,
                     "updated_at": now,

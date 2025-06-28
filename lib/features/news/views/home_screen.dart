@@ -227,6 +227,60 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // Chuẩn hóa category: Ưu tiên tiếng Việt, nếu không có thì dịch từ tiếng Anh
+  String normalizeCategory(dynamic category) {
+    if (category == null) return 'Khác';
+    if (category is List && category.isNotEmpty) {
+      // Ưu tiên giá trị tiếng Việt có dấu nếu có
+      for (var cat in category) {
+        if (_isVietnamese(cat.toString())) return cat.toString();
+      }
+      // Nếu không có, dịch giá trị đầu tiên sang tiếng Việt
+      return _categoryMapToVietnamese(category.first.toString());
+    }
+    if (category is String) {
+      if (_isVietnamese(category)) return category;
+      return _categoryMapToVietnamese(category);
+    }
+    return "Khác";
+  }
+
+  String _categoryMapToVietnamese(String category) {
+    final Map<String, String> categoryTranslations = {
+      'business': 'Kinh doanh',
+      'education': 'Giáo dục',
+      'entertainment': 'Giải trí',
+      'environment': 'Môi trường',
+      'food': 'Ẩm thực',
+      'health': 'Sức khỏe',
+      'lifestyle': 'Đời sống',
+      'politics': 'Chính trị',
+      'science': 'Khoa học',
+      'sports': 'Thể thao',
+      'technology': 'Công nghệ',
+      'top': 'Nổi bật',
+      'tourism': 'Du lịch',
+      'world': 'Thế giới',
+      'other': 'Khác',
+    };
+    final clean =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (categoryTranslations.containsKey(clean))
+      return categoryTranslations[clean]!;
+    for (var entry in categoryTranslations.entries) {
+      if (clean.contains(entry.key)) return entry.value;
+    }
+    return category;
+  }
+
+  // Kiểm tra có phải tiếng Việt không
+  bool _isVietnamese(String text) {
+    final vietnameseRegex = RegExp(
+      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+    );
+    return vietnameseRegex.hasMatch(text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -651,16 +705,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.blue.withOpacity(0.7)],
+              if (selectedCategory != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _getCategoryColors(selectedCategory),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  child: Icon(
+                    _getCategoryIcon(selectedCategory),
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
-                child: const Icon(Icons.article, color: Colors.white, size: 20),
-              ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue, Colors.blue.withOpacity(0.7)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.article,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ],
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -668,7 +743,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     Text(
                       selectedCategory != null
-                          ? 'Tin tức ${selectedCategory}'
+                          ? _getCategoryDisplayName(selectedCategory)
                           : 'Tất cả tin tức',
                       style: TextStyle(
                         fontSize: 20,
@@ -917,6 +992,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildCategorySection() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final newsProvider = context.read<NewsProvider>();
+    final allArticles = newsProvider.allNews.results ?? [];
+    // Duyệt qua tất cả bài viết, chuẩn hóa category, loại trùng
+    final Set<String> categories = {};
+    for (var article in allArticles) {
+      final cat = normalizeCategory(article.category);
+      if (cat.isNotEmpty && cat != 'Khác') categories.add(cat);
+    }
+    final List<String> availableCategories = ['Tất cả', ...categories.toList()];
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -956,8 +1040,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 16),
           CategoryBar(
-            selectedCategory: selectedCategory,
-            onCategorySelected: _onCategorySelected,
+            availableCategories: availableCategories,
+            selectedCategory: selectedCategory ?? 'Tất cả',
+            onCategorySelected: (cat) {
+              if (cat == 'Tất cả') {
+                setState(() => selectedCategory = null);
+              } else {
+                setState(() => selectedCategory = cat);
+              }
+            },
           ),
         ],
       ),
@@ -1040,7 +1131,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text(
                         selectedCategory != null
-                            ? 'Tin tức ${selectedCategory}'
+                            ? _getCategoryDisplayName(selectedCategory)
                             : 'Tất cả tin tức',
                         style: TextStyle(
                           fontSize: 18,
@@ -1121,13 +1212,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Thêm method để dịch category sang tiếng Việt
   String _getCategoryDisplayName(String? category) {
-    if (category == null || category.isEmpty) return "Khác";
+    if (category == null) return "Khác";
 
     // Map dịch category
     final Map<String, String> categoryTranslations = {
       'business': 'Kinh doanh',
-      'crime': 'Tội phạm',
-      'domestic': 'Trong nước',
       'education': 'Giáo dục',
       'entertainment': 'Giải trí',
       'environment': 'Môi trường',
@@ -1391,56 +1480,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Thêm method chia sẻ
   void _shareArticle(Result article) {
-    //     final String shareText = '''
-    // 📰 ${article.title ?? 'Tin tức mới'}
-
-    // 🔗 ${article.link ?? ''}
-
-    // 📱 Chia sẻ từ GeNews
-    // ''';
-
-    //     // Import share_plus package nếu chưa có
-    //     // Hoặc sử dụng platform channels để chia sẻ
-    //     try {
-    //       // Share.ios_share(shareText);
-
-    //       // Tạm thời hiển thị dialog với nội dung chia sẻ
-    //       showDialog(
-    //         context: context,
-    //         builder: (BuildContext context) {
-    //           return AlertDialog(
-    //             title: const Text('Chia sẻ bài viết'),
-    //             content: SingleChildScrollView(child: Text(shareText)),
-    //             actions: [
-    //               TextButton(
-    //                 child: const Text('Đóng'),
-    //                 onPressed: () => Navigator.of(context).pop(),
-    //               ),
-    //               TextButton(
-    //                 child: const Text('Sao chép'),
-    //                 onPressed: () {
-    //                   // Clipboard.setData(ClipboardData(text: shareText));
-    //                   Navigator.of(context).pop();
-    //                   ScaffoldMessenger.of(context).showSnackBar(
-    //                     const SnackBar(
-    //                       content: Text('Đã sao chép vào clipboard'),
-    //                       duration: Duration(seconds: 2),
-    //                     ),
-    //                   );
-    //                 },
-    //               ),
-    //             ],
-    //           );
-    //         },
-    //       );
-    //     } catch (e) {
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         const SnackBar(
-    //           content: Text('Không thể chia sẻ bài viết'),
-    //           duration: Duration(seconds: 2),
-    //         ),
-    //       );
-    //     }
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
@@ -1505,6 +1544,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   fontSize: 14,
                   color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -1603,5 +1643,104 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return _buildListRowItem(article, isSaved);
       },
     );
+  }
+
+  // Lấy icon cho category
+  IconData _getCategoryIcon(String? category) {
+    if (category == null) return Icons.category;
+    final clean =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    const icons = {
+      'business': Icons.business_center,
+      'crime': Icons.security,
+      'domestic': Icons.home,
+      'education': Icons.school,
+      'entertainment': Icons.movie,
+      'environment': Icons.eco,
+      'food': Icons.restaurant,
+      'health': Icons.local_hospital,
+      'lifestyle': Icons.style,
+      'politics': Icons.account_balance,
+      'science': Icons.science,
+      'sports': Icons.sports_soccer,
+      'technology': Icons.computer,
+      'top': Icons.star,
+      'tourism': Icons.flight,
+      'world': Icons.public,
+      'other': Icons.category,
+      // Vietnamese
+      'kinh doanh': Icons.business_center,
+      'tội phạm': Icons.security,
+      'trong nước': Icons.home,
+      'giáo dục': Icons.school,
+      'giải trí': Icons.movie,
+      'môi trường': Icons.eco,
+      'ẩm thực': Icons.restaurant,
+      'sức khỏe': Icons.local_hospital,
+      'đời sống': Icons.style,
+      'chính trị': Icons.account_balance,
+      'khoa học': Icons.science,
+      'thể thao': Icons.sports_soccer,
+      'công nghệ': Icons.computer,
+      'nổi bật': Icons.star,
+      'du lịch': Icons.flight,
+      'thế giới': Icons.public,
+      'khác': Icons.category,
+    };
+    if (icons.containsKey(clean)) return icons[clean]!;
+    for (var entry in icons.entries) {
+      if (clean.contains(entry.key)) return entry.value;
+    }
+    return Icons.category;
+  }
+
+  // Lấy màu gradient cho category
+  List<Color> _getCategoryColors(String? category) {
+    if (category == null)
+      return [AppColors.primaryColor, AppColors.primaryColor.withOpacity(0.7)];
+    final clean =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    final map = {
+      'business': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+      'crime': [Color(0xFFD32F2F), Color(0xFFEF5350)],
+      'domestic': [Color(0xFF1976D2), Color(0xFF2196F3)],
+      'education': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
+      'entertainment': [Color(0xFFE91E63), Color(0xFFF06292)],
+      'environment': [Color(0xFF388E3C), Color(0xFF66BB6A)],
+      'food': [Color(0xFFFF5722), Color(0xFFFF7043)],
+      'health': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
+      'lifestyle': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
+      'politics': [Color(0xFF5D4037), Color(0xFF8D6E63)],
+      'science': [Color(0xFF303F9F), Color(0xFF3F51B5)],
+      'sports': [Color(0xFFFF6F00), Color(0xFFFF9800)],
+      'technology': [Color(0xFF455A64), Color(0xFF607D8B)],
+      'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
+      'tourism': [Color(0xFF0097A7), Color(0xFF00BCD4)],
+      'world': [Color(0xFF512DA8), Color(0xFF673AB7)],
+      'other': [Color(0xFF616161), Color(0xFF757575)],
+      // Vietnamese
+      'kinh doanh': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+      'tội phạm': [Color(0xFFD32F2F), Color(0xFFEF5350)],
+      'trong nước': [Color(0xFF1976D2), Color(0xFF2196F3)],
+      'giáo dục': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
+      'giải trí': [Color(0xFFE91E63), Color(0xFFF06292)],
+      'môi trường': [Color(0xFF388E3C), Color(0xFF66BB6A)],
+      'ẩm thực': [Color(0xFFFF5722), Color(0xFFFF7043)],
+      'sức khỏe': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
+      'đời sống': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
+      'chính trị': [Color(0xFF5D4037), Color(0xFF8D6E63)],
+      'khoa học': [Color(0xFF303F9F), Color(0xFF3F51B5)],
+      'thể thao': [Color(0xFFFF6F00), Color(0xFFFF9800)],
+      'công nghệ': [Color(0xFF455A64), Color(0xFF607D8B)],
+      'nổi bật': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
+      'du lịch': [Color(0xFF0097A7), Color(0xFF00BCD4)],
+      'thế giới': [Color(0xFF512DA8), Color(0xFF673AB7)],
+      'khác': [Color(0xFF616161), Color(0xFF757575)],
+    };
+    if (map.containsKey(clean)) return map[clean]!;
+    for (var entry in map.entries) {
+      if (clean.contains(entry.key)) return entry.value;
+    }
+    return [AppColors.primaryColor, AppColors.primaryColor.withOpacity(0.7)];
   }
 }

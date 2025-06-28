@@ -49,27 +49,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     'other': [Color(0xFF616161), Color(0xFF757575)],
   };
 
-  // Thêm map dịch category giống NewsCard
-  static final Map<String, String> _categoryTranslations = {
-    'business': 'Kinh doanh',
-    'crime': 'Tội phạm',
-    'domestic': 'Trong nước',
-    'education': 'Giáo dục',
-    'entertainment': 'Giải trí',
-    'environment': 'Môi trường',
-    'food': 'Ẩm thực',
-    'health': 'Sức khỏe',
-    'lifestyle': 'Đời sống',
-    'politics': 'Chính trị',
-    'science': 'Khoa học',
-    'sports': 'Thể thao',
-    'technology': 'Công nghệ',
-    'top': 'Nổi bật',
-    'tourism': 'Du lịch',
-    'world': 'Thế giới',
-    'other': 'Khác',
-  };
-
   @override
   void initState() {
     super.initState();
@@ -130,7 +109,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       }
     });
   }
-
   void _removeBookmark(Result article) async {
     await _bookmarksService.removeArticle(article);
     _loadBookmarks();
@@ -223,36 +201,70 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   }
 
   // Thêm method để dịch category sang tiếng Việt
-  String _translateCategory(String category) {
-    // Handle null case
-    if (category.isEmpty) return "Khác";
-
-    // Clean up category text and convert to lowercase for matching
-    String cleanCategory =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    // Try to find exact match first
-    if (_categoryTranslations.containsKey(cleanCategory)) {
-      return _categoryTranslations[cleanCategory]!;
-    }
-
-    // If no exact match, look for partial matches
-    for (var entry in _categoryTranslations.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
+  String _translateCategory(dynamic category) {
+    if (category == null) return "";
+    if (category is List && category.isNotEmpty) {
+      for (var cat in category) {
+        if (_isVietnamese(cat.toString())) return cat.toString();
       }
+      return _categoryMapToVietnamese(category.first.toString());
     }
+    if (category is String) {
+      if (_isVietnamese(category)) return category;
+      return _categoryMapToVietnamese(category);
+    }
+    return "";
+  }
 
-    // If no match found, capitalize first letter of each word
-    return cleanCategory
-        .split(' ')
-        .map(
-          (word) =>
-              word.isNotEmpty
-                  ? word[0].toUpperCase() + word.substring(1).toLowerCase()
-                  : word,
-        )
-        .join(' ');
+  String _categoryMapToVietnamese(String category) {
+    final Map<String, String> categoryTranslations = {
+      'business': 'Kinh doanh',
+      'education': 'Giáo dục',
+      'entertainment': 'Giải trí',
+      'environment': 'Môi trường',
+      'food': 'Ẩm thực',
+      'health': 'Sức khỏe',
+      'lifestyle': 'Đời sống',
+      'politics': 'Chính trị',
+      'science': 'Khoa học',
+      'sports': 'Thể thao',
+      'technology': 'Công nghệ',
+      'top': 'Nổi bật',
+      'tourism': 'Du lịch',
+      'world': 'Thế giới',
+      'other': 'Khác',
+    };
+    final clean =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (categoryTranslations.containsKey(clean))
+      return categoryTranslations[clean]!;
+    for (var entry in categoryTranslations.entries) {
+      if (clean.contains(entry.key)) return entry.value;
+    }
+    return category;
+  }
+
+  // Chuẩn hóa category: Ưu tiên tiếng Việt, nếu không có thì dịch từ tiếng Anh
+  String normalizeCategory(dynamic category) {
+    if (category == null) return 'Khác';
+    if (category is List && category.isNotEmpty) {
+      for (var cat in category) {
+        if (_isVietnamese(cat.toString())) return cat.toString();
+      }
+      return _translateCategory(category.first.toString());
+    }
+    if (category is String) {
+      if (_isVietnamese(category)) return category;
+      return _translateCategory(category);
+    }
+    return 'Khác';
+  }
+
+  bool _isVietnamese(String text) {
+    final vietnameseRegex = RegExp(
+      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+    );
+    return vietnameseRegex.hasMatch(text);
   }
 
   // Thay thế method _buildSliverAppBar và search bar section
@@ -342,6 +354,13 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // Thêm 'Tất cả' vào đầu danh sách category
+    final Set<String> categories = {};
+    for (var article in _bookmarkedArticles) {
+      final cat = normalizeCategory(article.category);
+      if (cat.isNotEmpty && cat != 'Khác') categories.add(cat);
+    }
+    final List<String> displayCategories = ['Tất cả', ...categories.toList()];
 
     return Scaffold(
       body: SafeArea(
@@ -441,7 +460,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 ),
 
               // Category Bar
-              if (_availableCategories.isNotEmpty)
+              if (displayCategories.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -450,9 +469,15 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                             ? Colors.grey[900]
                             : Colors.white, // Màu nền category bar
                     child: CategoryBar(
-                      availableCategories: _availableCategories,
-                      selectedCategory: selectedCategory,
-                      onCategorySelected: _onCategorySelected,
+                      availableCategories: displayCategories,
+                      selectedCategory: selectedCategory ?? 'Tất cả',
+                      onCategorySelected: (cat) {
+                        if (cat == 'Tất cả') {
+                          setState(() => selectedCategory = null);
+                        } else {
+                          setState(() => selectedCategory = cat);
+                        }
+                      },
                     ),
                   ),
                 ),

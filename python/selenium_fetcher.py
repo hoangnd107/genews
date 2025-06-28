@@ -35,17 +35,22 @@ class SeleniumFetcher:
     }
 
     CATEGORIES = {
-        "kinh-doanh": "Kinh doanh",
-        "xa-hoi": "Xã hội",
-        "the-gioi": "Thế giới",
-        "giai-tri": "Giải trí",
-        "the-thao": "Thể thao",
-        "suc-khoe": "Sức khỏe",
-        "cong-nghe": "Công nghệ",
-        "giao-duc": "Giáo dục",
-        "phap-luat": "Pháp luật",
-        "viec-lam": "Việc làm",
-        "tin-moi-nhat": "Tin mới nhất",
+        "kinh-doanh": "business",
+        "xa-hoi": "society",
+        "the-gioi": "world",
+        "giai-tri": "entertainment",
+        "the-thao": "sports",
+        "suc-khoe": "health",
+        "cong-nghe": "technology",
+        "giao-duc": "education",
+        "du-lich": "tourism",
+        "tin-moi-nhat": "top",
+        "o-to-xe-may": "auto",
+        "viec-lam": "jobs",
+        "bat-dong-san": "real-estate",
+        "phap-luat": "law",
+        "doi-song": "lifestyle",
+        "khoa-hoc": "science",
     }
 
     def __init__(self):
@@ -165,14 +170,15 @@ class SeleniumFetcher:
             "article_id": self._generate_article_id(link),
             "title": title.strip(),
             "link": self._extract_full_url(link),
-            "keywords": [],
             "creator": self.SOURCE_CONFIG["creator"],
             "video_url": None,
             "description": (
                 description.strip() if description else "No description available."
             ),
-            "content": "CONTENT_TO_BE_SCRAPED",
-            "pubDate": now,  # Use current time as we can't get exact publish date from listing
+            "content": (
+                description.strip() if description else "No description available."
+            ),
+            "pubDate": now,
             "pubDateTZ": "UTC+07:00",
             "image_url": self._extract_full_url(image_url) if image_url else None,
             "source_id": self.SOURCE_CONFIG["source_id"],
@@ -184,14 +190,9 @@ class SeleniumFetcher:
             "country": self.SOURCE_CONFIG["country"],
             "category": [category_name],
             "ai_tag": "SELENIUM_SCRAPED",
-            "sentiment": "NEUTRAL",
-            "sentiment_stats": "NOT_ANALYZED",
-            "ai_region": "NOT_ANALYZED",
-            "ai_org": "NOT_ANALYZED",
             "duplicate": False,
             "created_at": now,
             "updated_at": now,
-            "category_slug": category_slug,
         }
 
     def fetch_category_articles(

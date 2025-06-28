@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart';
-import 'package:genews/shared/services/category_mapping_service.dart';
 import 'package:genews/shared/services/offline_news_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 
@@ -23,42 +22,45 @@ class NewsCard extends StatelessWidget {
 
   String _translateCategory(dynamic category) {
     if (category == null) return "";
-
-    // If category is a List (array), get the first category for display
-    if (category is List) {
-      if (category.isEmpty) return "";
-
-      // Get the first category from the array and clean it
-      final firstCategory = _cleanCategoryString(category.first.toString());
-
-      // If it's already in Vietnamese (contains Vietnamese characters), keep it
-      if (_isVietnamese(firstCategory)) {
-        return firstCategory;
+    if (category is List && category.isNotEmpty) {
+      for (var cat in category) {
+        if (_isVietnamese(cat.toString())) return cat.toString();
       }
-
-      // Otherwise, translate from English to Vietnamese
-      return CategoryMappingService.toVietnamese(firstCategory);
+      return _categoryMapToVietnamese(category.first.toString());
     }
-
-    // If category is a String, clean it first
-    final categoryStr = _cleanCategoryString(category.toString());
-    if (categoryStr.isEmpty) return "";
-
-    if (_isVietnamese(categoryStr)) {
-      return categoryStr;
+    if (category is String) {
+      if (_isVietnamese(category)) return category;
+      return _categoryMapToVietnamese(category);
     }
-
-    return CategoryMappingService.toVietnamese(categoryStr);
+    return "";
   }
 
-  // Clean category string - remove special characters and brackets
-  String _cleanCategoryString(String category) {
-    return category
-        .replaceAll(
-          RegExp(r'[\[\]"",\.]'),
-          '',
-        ) // Remove brackets, quotes, commas, dots
-        .trim();
+  String _categoryMapToVietnamese(String category) {
+    final Map<String, String> categoryTranslations = {
+      'business': 'Kinh doanh',
+      'education': 'Giáo dục',
+      'entertainment': 'Giải trí',
+      'environment': 'Môi trường',
+      'food': 'Ẩm thực',
+      'health': 'Sức khỏe',
+      'lifestyle': 'Đời sống',
+      'politics': 'Chính trị',
+      'science': 'Khoa học',
+      'sports': 'Thể thao',
+      'technology': 'Công nghệ',
+      'top': 'Nổi bật',
+      'tourism': 'Du lịch',
+      'world': 'Thế giới',
+      'other': 'Khác',
+    };
+    final clean =
+        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
+    if (categoryTranslations.containsKey(clean))
+      return categoryTranslations[clean]!;
+    for (var entry in categoryTranslations.entries) {
+      if (clean.contains(entry.key)) return entry.value;
+    }
+    return category;
   }
 
   // Helper method to check if text contains Vietnamese characters

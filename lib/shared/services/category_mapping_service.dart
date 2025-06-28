@@ -4,8 +4,6 @@ class CategoryMappingService {
   // Map từ English sang Vietnamese
   static const Map<String, String> _enToVi = {
     'business': 'Kinh doanh',
-    'crime': 'Tội phạm',
-    'domestic': 'Trong nước',
     'education': 'Giáo dục',
     'entertainment': 'Giải trí',
     'environment': 'Môi trường',

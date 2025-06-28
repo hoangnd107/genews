@@ -465,10 +465,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        tooltip: 'Tóm tắt AI',
+        tooltip: 'Tóm tắt',
         icon: const Icon(Icons.bolt, color: Colors.white),
         label: const Text(
-          'Tóm tắt AI',
+          'Tóm tắt',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.orange,
