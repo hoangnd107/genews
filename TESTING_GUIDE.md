@@ -123,6 +123,40 @@ flutter build apk --release --split-per-abi
 flutter build ios --release
 ```
 
+## 🧪 Debug & Testing Tools
+
+Các tools debug và testing đã được tổ chức trong thư mục `test/`:
+
+### Debug Screen (Development Only)
+
+```dart
+// Import test utilities
+import 'package:genews/test/test_utils.dart';
+
+// Navigate to debug screen
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => const DebugScreen()),
+);
+```
+
+### Available Tools:
+
+- **Firestore Connection Test**: Kiểm tra kết nối Firestore
+- **Permission Diagnosis**: Phân tích quyền truy cập
+- **Category Testing**: Test mapping categories
+- **Data Quality Check**: Kiểm tra chất lượng dữ liệu
+
+### Test Structure:
+
+```
+test/
+├── screens/debug_screen.dart          # Main debug interface
+├── widgets/                           # Test UI components
+├── services/                          # Test services & helpers
+└── test_utils.dart                   # Export all utilities
+```
+
 ---
 
 **🎉 App ready for production use!**
