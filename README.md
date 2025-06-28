@@ -5,7 +5,9 @@
 
 ## 🌟 Overview
 
-**GeNews** is a cross-platform news aggregator and summarizer built with Flutter, powered by Google Gemini AI. The app fetches news from multiple sources, stores and syncs data in Firestore, and provides real-time updates, advanced search, bookmarking, sharing, and enhanced in-app reading with intelligent ad-blocking technology.
+**GeNews** is a cross-platform news app using Flutter and Google Gemini AI. News is fetched automatically from APIs, RSS, and web scraping by Python scripts running in Docker on Cloud Run, then synced to Firestore for real-time access on all devices.
+
+The platform features a sophisticated three-tier architecture: automated Python-based fetchers running on Google Cloud Run collect news from APIs, RSS feeds, and web scraping; real-time data synchronization through Firebase Firestore; and a rich Flutter client application offering advanced search, smart bookmarking, intelligent ad-blocking, and AI-powered content summarization across Android, iOS, Web, Windows, macOS, and Linux platforms.
 
 ## 🏗️ System Architecture
 
@@ -13,28 +15,36 @@
 
 ### Main Components
 
-- **Data Processing (Python Backend):**
-  - Automated news collection from RSS, web scraping (Selenium), and official APIs
-  - Preprocessing and normalization, storing articles in Firestore via scripts in [`python/`](python/)
+- **Data Processing Layer (Python Backend):**
+
+  - **Multi-Source Fetchers:** Automated news collection from RSS feeds, web scraping (Selenium), and official APIs
+  - **Data Pipeline:** Preprocessing, normalization, and deduplication of news articles
+  - **Scheduled Processing:** Hourly automated fetching with error handling and retry mechanisms
+
+- **Containerization & Deployment (Docker + Cloud Run):**
+
+  - **Docker Image:** Containerized Python environment with all dependencies (Chrome, ChromeDriver, Python libraries)
+  - **Google Cloud Run Service:** Serverless container platform running fetchers automatically 24/7
+  - **Auto-scaling:** Automatic resource management and cost optimization
+  - **Health Monitoring:** Built-in health checks and logging for service reliability
+
 - **Cloud Infrastructure (Firebase/Google Cloud):**
-  - **Firestore Database:** Stores articles, bookmarks, and user data
-  - **Realtime Sync:** Instant data updates across all devices
-  - **Google Gemini AI:** Generates news summaries and content analysis (called directly from the Flutter app)
-- **Flutter Application (Client):**
-  - **Cross-platform UI:** Android, iOS, Web, Windows, macOS, Linux
-  - **State Management:** Provider pattern for efficient state management
-  - **Advanced Search:** Full-text search, filter by category/source
-  - **Smart Bookmarking:** Save, manage, search saved articles with real-time sync
-  - **Sharing:** Native and web sharing support across platforms
-  - **Enhanced WebView:** In-app reading with intelligent ad-blocking and font size controls
-  - **UI Customization:** Dark/Light mode, adjustable font size, optimized reading experience
+
+  - **Firestore Database:** NoSQL storage for articles, bookmarks, and user data with real-time sync
+  - **Cloud Run:** Serverless platform hosting the automated news fetching service
+  - **Google Gemini AI:** Advanced AI for news summarization and content analysis (called directly from Flutter app)
+
+- **Client Application (Flutter):**
+  - **Cross-platform UI:** Single codebase for Android, iOS, Web, Windows, macOS, and Linux
+  - **Real-time Updates:** Live data synchronization with Firestore backend
+  - **State Management:** Provider pattern for efficient and reactive state management
+  - **Advanced Features:** Search, bookmarking, sharing, ad-blocking, and customizable reading experience
 
 ## 🚀 Key Features
 
 ### 🤖 AI-Powered Features
 
 - **Smart Summarization:** Automatic article summarization using Gemini AI, with intelligent caching for performance
-- **Content Analysis:** AI-powered news analysis and key insights extraction
 
 ### 🔍 Advanced Search & Discovery
 
@@ -72,16 +82,32 @@
 
 ## 🛠️ Technical Stack & Technologies
 
+### Frontend & Client
+
 - **Flutter 3.x** (Dart): Cross-platform UI framework with modern architecture
-- **Firebase Firestore:** NoSQL database for real-time data storage and sync
-- **Google Gemini AI:** Advanced AI for summarization and content analysis
-- **Python (Selenium, RSS Parser):** Backend data collection and processing pipeline
 - **Provider:** Efficient state management with reactive programming
 - **WebView Flutter:** Enhanced in-app browser with ad-blocking capabilities
 - **Cached Network Image:** Optimized image loading with smart caching
 - **Share Plus:** Native and web sharing integration
 - **Shared Preferences:** Local data persistence and user settings
-- **Custom UI Components:** Reusable widgets with modern design principles
+
+### Backend & Data Processing
+
+- **Python:** Backend data collection and processing pipeline
+- **Selenium:** Automated web scraping with Chrome headless browser
+- **RSS Parser:** Feed processing and aggregation from news sources
+- **NewsData API:** Official news API integration for reliable data sources
+- **BeautifulSoup:** HTML parsing and content extraction
+
+### Cloud Infrastructure & DevOps
+
+- **Docker:** Containerization of Python fetchers with all dependencies
+- **Google Cloud Run:** Serverless container platform for automated deployment
+- **Firebase Firestore:** NoSQL database for real-time data storage and sync
+
+### AI & Intelligence
+
+- **Google Gemini AI:** Advanced AI for summarization
 
 ## 📁 Project Structure
 
@@ -90,21 +116,14 @@ genews/
 ├── lib/                           # Flutter/Dart source code
 │   ├── app/                      # Application configuration
 │   │   ├── config/              # Constants, enums, Firebase options
-│   │   ├── themes/              # UI themes, colors, styling
-│   │   ├── routes/              # Navigation routes (reserved)
+│   │   ├── themes/              # UI themes, colors, styling (reserved)
 │   │   └── app.dart             # Main application widget
 │   ├── features/                # Feature-based modules
 │   │   ├── analysis/            # News analysis and AI summaries
-│   │   │   ├── data/           # Models and repositories
-│   │   │   ├── providers/      # State management
 │   │   │   └── views/          # UI screens
 │   │   ├── bookmarks/           # Bookmark management
-│   │   │   ├── data/           # Bookmark data models
-│   │   │   ├── providers/      # Bookmark state management
 │   │   │   └── views/          # Bookmark screens
 │   │   ├── main/                # Main screen and navigation
-│   │   │   ├── data/           # Main app data
-│   │   │   ├── providers/      # Navigation state
 │   │   │   └── views/          # Main screens
 │   │   ├── news/                # News listing and reading
 │   │   │   ├── data/           # News models and repositories
@@ -121,10 +140,12 @@ genews/
 │   ├── main.dart               # Application entry point
 │   └── genews.dart             # Main library export file
 ├── python/                      # Backend data processing scripts
-│   ├── api_fetcher.py          # API-based news collection
-│   ├── rss_fetcher.py          # RSS feed processing
-│   ├── selenium_fetcher.py     # Web scraping with Selenium
-│   ├── main.py                 # Main processing pipeline
+│   ├── api_fetcher.py          # API-based news collection (NewsData API)
+│   ├── rss_fetcher.py          # RSS feed processing (VnExpress)
+│   ├── selenium_fetcher.py     # Web scraping with Selenium (Dantri)
+│   ├── main.py                 # Main processing pipeline with scheduler
+│   ├── Dockerfile              # Container configuration for Cloud Run
+│   ├── .dockerignore           # Docker build exclusions
 │   └── requirements.txt        # Python dependencies
 ├── test/                        # Testing utilities (separated from production)
 │   ├── screens/                # Debug and test screens
@@ -139,30 +160,6 @@ genews/
 └── ...                         # Build and configuration files
 ```
 
-## ✨ Key Improvements & Features
-
-### 🔒 Enhanced Ad-Blocking
-
-- **Smart Detection:** Advanced pattern matching for ad networks
-- **Real-time Counter:** Live tracking of blocked advertisements
-- **Performance Optimized:** Minimal impact on page loading speed
-- **Comprehensive Coverage:** Blocks major ad networks and tracking scripts
-
-### 🎨 Improved User Experience
-
-- **Modern AppBar:** Clean design with real-time status indicators
-- **Enhanced Loading:** Beautiful loading states with progress indicators
-- **Smart Bookmarking:** Real-time bookmark status with visual feedback
-- **Font Controls:** Easy text size adjustment for better readability
-- **Quick Actions:** Copy link, share, and reload with enhanced filtering
-
-### 🏗️ Clean Architecture
-
-- **Feature-based Organization:** Modular structure for easy maintenance
-- **Separation of Concerns:** Clear distinction between production and test code
-- **Barrel Exports:** Clean import structure with organized exports
-- **Consistent Patterns:** Standardized structure across all features
-
 ## 🔧 Setup & Configuration
 
 ### Prerequisites
@@ -170,28 +167,73 @@ genews/
 - **Flutter SDK:** Version 3.x or later
 - **Firebase Project:** Firestore database enabled
 - **Google AI Studio:** Gemini API key
-- **Python 3.8+:** For backend data processing
+- **Google Cloud Platform:** Account with Cloud Run
+- **Python 3.8+:** For local development and testing
 
 ### Firebase Setup
 
 1. Create a new Firebase project
-2. Enable Firestore Database
-3. Set up security rules for articles collection
-4. Download and configure `google-services.json` (Android) / `GoogleService-Info.plist` (iOS)
+2. Enable Firestore Database with appropriate security rules
+3. Download and configure `google-services.json` (Android) / `GoogleService-Info.plist` (iOS)
+4. Set up collections: `articles`, `bookmarks`, `news_data`
 
-### Gemini AI Configuration
+### Cloud Infrastructure Setup
 
-1. Obtain API key from Google AI Studio
-2. Configure in application settings
-3. Set up appropriate usage limits and quotas
+#### Google Cloud Run Deployment
 
-### Python Backend
+1. **Enable required APIs:**
+
+   ```bash
+   gcloud services enable run.googleapis.com
+   gcloud services enable cloudbuild.googleapis.com
+   ```
+
+2. **Deploy the news fetching service:**
+
+   ```bash
+   cd python/
+   gcloud run deploy genews-fetcher \
+     --source . \
+     --platform managed \
+     --region asia-southeast1 \
+     --allow-unauthenticated \
+     --memory 2Gi \
+     --cpu 2 \
+     --timeout 3600 \
+     --max-instances 1 \
+     --set-env-vars DISPLAY=:99,FIREBASE_SERVICE_ACCOUNT_PATH=serviceAccountKey.json,NEWS_API_KEY=your_api_key,NEWS_COLLECTION=news_data,ARTICLES_COLLECTION=articles \
+     --project your-project-id
+   ```
+
+3. **Configure environment variables:**
+   - `NEWS_API_KEY`: Your NewsData API key
+   - `FIREBASE_SERVICE_ACCOUNT_PATH`: Path to Firebase service account JSON
+   - `NEWS_COLLECTION`: Firestore collection for news metadata
+   - `ARTICLES_COLLECTION`: Firestore collection for articles
+
+### Local Development
+
+#### Flutter App Setup
+
+```bash
+flutter pub get
+flutter run
+```
+
+#### Python Backend Testing
 
 ```bash
 cd python/
 pip install -r requirements.txt
-python main.py  # Run data collection pipeline
+python main.py  # Run once
+python main.py --schedule  # Run with hourly scheduler
 ```
+
+### Gemini AI Configuration
+
+1. Obtain API key from Google AI Studio
+2. Configure in Flutter app settings
+3. Set up appropriate usage limits and quotas
 
 ## 🎯 Development Guidelines
 
@@ -217,34 +259,9 @@ python main.py  # Run data collection pipeline
 - Integration tests for key user flows
 - Performance testing for optimization
 
-## 🚀 Future Enhancements
-
-- **Offline Mode:** Complete offline reading support
-- **Push Notifications:** Real-time news alerts
-- **User Profiles:** Personalized news preferences
-- **Social Features:** Share and discuss articles
-- **Analytics:** Advanced usage analytics and insights
-- **Multi-language:** Extended language support
-
 ## 👥 Author
 
 - **Hoang Nguyen Duy** - Full-stack Developer & AI Enthusiast
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📞 Support
-
-If you have any questions or need support, please:
-
-- Open an issue on GitHub
-- Contact the development team
-- Check the documentation in the `docs/` folder
 
 ---
 

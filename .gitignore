@@ -217,4 +217,73 @@ doc/api/
 lib/core/constants.dart
 lib/core/serviceAccountKey.json
 
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VS Code settings
+.vscode/
+.history/
+
+# Python virtual environments
 .venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Node.js
+node_modules/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Misc
+*.orig
+*.bak
+*.tmp
+*.temp
+
+# Flutter build outputs
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android/iOS build outputs (redundant, but explicit)
+android/app/build/
+ios/Pods/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+
+# Firebase/Google config (uncomment if you want to ignore)
+# google-services.json
+# GoogleService-Info.plist
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Generated files
+lib/generated_plugin_registrant.dart
+
+# Sensitive keys
+lib/core/serviceAccountKey.json
+
+# dotenv
+.env*
