@@ -56,15 +56,17 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
     super.dispose();
   }
 
+  // ignore: strict_top_level_inference
   _fetchAnalysis() {
     context.read<NewsProvider>().generateAnalysis(
-      widget.newsData.description ?? "",
+      widget.newsData.description ?? widget.newsData.title ?? "",
     );
   }
 
+  // ignore: strict_top_level_inference
   _regenerateAnalysis() {
     context.read<NewsProvider>().regenerateAnalysis(
-      widget.newsData.description ?? "",
+      widget.newsData.description ?? widget.newsData.title ?? "",
     );
   }
 

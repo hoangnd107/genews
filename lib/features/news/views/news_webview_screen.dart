@@ -1168,7 +1168,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
                     value: 'share',
                     child: Row(
                       children: [
-                        const Icon(Icons.share, size: 20, color: Colors.blue),
+                        const Icon(Icons.ios_share, size: 20, color: Colors.blue),
                         const SizedBox(width: 12),
                         Text(
                           'Chia sẻ tin tức',
@@ -1353,12 +1353,12 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen> {
             ),
           );
         },
-        tooltip: 'Tóm tắt AI',
+        tooltip: 'Tóm tắt',
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.bolt),
         label: const Text(
-          'Tóm tắt AI',
+          'Tóm tắt',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

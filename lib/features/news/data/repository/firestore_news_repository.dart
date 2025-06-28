@@ -139,7 +139,7 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
     final hasInternet =
         await OfflineNewsService.instance.hasInternetConnection();
     if (!hasInternet) {
-      throw Exception("Cần kết nối internet để tạo tóm tắt AI mới");
+      throw Exception("Cần kết nối internet để tạo tóm tắt mới");
     }
 
     final prompt = """
