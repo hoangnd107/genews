@@ -4,7 +4,7 @@ import 'package:genews/shared/services/bookmarks_service.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/features/news/widgets/category_bar.dart';
-import 'package:genews/shared/styles/colors.dart';
+import 'package:genews/app/themes/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 
@@ -724,10 +724,11 @@ class _BookmarksScreenState extends State<BookmarksScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: articles.length,
-            separatorBuilder: (context, index) => Divider(
-              color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-              height: 1,
-            ),
+            separatorBuilder:
+                (context, index) => Divider(
+                  color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                  height: 1,
+                ),
             itemBuilder: (context, index) {
               final article = articles[index];
               return SlideTransition(
@@ -782,16 +783,17 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorWidget: (context, error, stackTrace) => Container(
-                  width: 80,
-                  height: 80,
-                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    size: 30,
-                  ),
-                ),
+                errorWidget:
+                    (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        size: 30,
+                      ),
+                    ),
               ),
             ),
 
@@ -831,7 +833,10 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           _formatTime(article.pubDate),
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -847,7 +852,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          _translateCategory(article.category?.toString() ?? ''),
+                          _translateCategory(
+                            article.category?.toString() ?? '',
+                          ),
                           style: TextStyle(
                             fontSize: 10,
                             color: AppColors.primaryColor,
@@ -876,65 +883,76 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                   color: isDarkMode ? Colors.grey[800] : Colors.white,
                   elevation: 8,
                   offset: const Offset(-10, 0),
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem<String>(
-                      value: 'share',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.ios_share,
-                            size: 18,
-                            color: isDarkMode ? Colors.white : Colors.black87,
+                  itemBuilder:
+                      (BuildContext context) => [
+                        PopupMenuItem<String>(
+                          value: 'share',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.ios_share,
+                                size: 18,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Chia sẻ',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Chia sẻ',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'analysis',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bolt,
+                                size: 18,
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tóm tắt',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'analysis',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bolt,
-                            size: 18,
-                            color: Colors.orange,
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'remove',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bookmark_remove,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Bỏ lưu',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Tóm tắt',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'remove',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bookmark_remove,
-                            size: 18,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Bỏ lưu',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
                   onSelected: (String value) {
                     switch (value) {
                       case 'share':
@@ -944,7 +962,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => NewsAnalysisScreen(newsData: article),
+                            builder:
+                                (context) =>
+                                    NewsAnalysisScreen(newsData: article),
                           ),
                         );
                         break;

@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:genews/core/enums.dart';
+import 'package:genews/app/config/enums.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/news/data/repository/firestore_news_repository.dart';
 import 'package:genews/shared/services/category_mapping_service.dart';

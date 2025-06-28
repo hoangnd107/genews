@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:genews/app/config/enums.dart';
 import 'package:provider/provider.dart';
-import 'package:genews/core/enums.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';

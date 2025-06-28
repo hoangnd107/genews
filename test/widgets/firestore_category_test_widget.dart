@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:genews/core/constants.dart';
+import 'package:genews/app/config/constants.dart';
 import 'package:genews/shared/services/category_mapping_service.dart';
 
 class FirestoreCategoryTestWidget extends StatefulWidget {

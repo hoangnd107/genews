@@ -1,6 +1,6 @@
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:genews/core/constants.dart';
+import 'package:genews/app/config/constants.dart';
 
 class FirestoreTestService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -184,8 +184,10 @@ class FirestoreTestService {
       final filteredArticles =
           allArticles.where((article) {
             final title = (article['title'] ?? '').toString().toLowerCase();
-            final description = (article['description'] ?? '').toString().toLowerCase();
-            final sourceName = (article['source_name'] ?? '').toString().toLowerCase();
+            final description =
+                (article['description'] ?? '').toString().toLowerCase();
+            final sourceName =
+                (article['source_name'] ?? '').toString().toLowerCase();
             final lowerQuery = query.toLowerCase();
 
             return title.contains(lowerQuery) ||

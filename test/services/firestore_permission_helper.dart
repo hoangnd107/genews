@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:genews/core/constants.dart';
+import 'package:genews/app/config/constants.dart';
 
 /// Service to troubleshoot and fix common Firestore permission issues
 class FirestorePermissionHelper {

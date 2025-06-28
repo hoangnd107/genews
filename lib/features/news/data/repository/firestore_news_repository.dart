@@ -1,7 +1,7 @@
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_generative_ai/google_generative_ai.dart' as ai;
-import 'package:genews/core/constants.dart';
+import 'package:genews/app/config/constants.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/offline_news_service.dart';
 import 'package:offline_first_support/offline_first.dart';

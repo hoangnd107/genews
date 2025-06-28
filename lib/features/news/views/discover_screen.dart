@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:genews/core/enums.dart';
+import 'package:genews/app/config/enums.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
@@ -9,7 +9,7 @@ import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:genews/features/news/views/category_news_screen.dart';
-import 'package:genews/shared/styles/colors.dart';
+import 'package:genews/app/themes/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 import 'package:genews/shared/widgets/paginated_list_view.dart';

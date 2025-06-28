@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genews/shared/services/category_mapping_service.dart';
-import 'package:genews/shared/styles/colors.dart';
+import 'package:genews/app/themes/colors.dart';
 
 /// Widget để test category mapping trong development
 class CategoryMappingTestWidget extends StatefulWidget {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:genews/core/enums.dart';
+import 'package:genews/app/config/enums.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
-import 'package:genews/shared/styles/colors.dart';
+import 'package:genews/app/themes/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';

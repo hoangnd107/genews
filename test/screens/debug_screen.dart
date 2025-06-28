@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/firestore_category_test_widget.dart';
 import '../services/firestore_test_service.dart';
 import '../services/firestore_permission_helper.dart';
-import 'package:genews/shared/styles/colors.dart';
+import 'package:genews/app/themes/colors.dart';
 
 /// Debug screen để test Firestore connectivity
 /// Chỉ sử dụng trong development
