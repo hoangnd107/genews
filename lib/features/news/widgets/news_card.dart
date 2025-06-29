@@ -41,17 +41,34 @@ class NewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBackgroundColor =
+        isDark
+            ? Color.alphaBlend(
+              theme.colorScheme.secondaryContainer.withOpacity(0.18),
+              theme.colorScheme.surface,
+            )
+            : theme.colorScheme.surface;
+    final categoryTextColor =
+        isDark
+            ? theme.colorScheme.primary.withOpacity(0.85)
+            : theme.colorScheme.primary;
+
     return GestureDetector(
       onTap: () => _openNewsWebView(context, newsData),
       child: Card(
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 4,
+        color: cardBackgroundColor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: CachedNetworkImage(
                 imageUrl: newsData.imageUrl ?? "",
                 width: double.infinity,
@@ -62,7 +79,6 @@ class NewsCard extends StatelessWidget {
                         Container(height: 180, color: Colors.grey[300]),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -90,54 +106,49 @@ class NewsCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       if (newsData.category != null)
                         Text(
-                          _getCategoryDisplayName(
-                            newsData.category,
-                          ), // Sử dụng duy nhất hàm này
+                          _getCategoryDisplayName(newsData.category),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context).primaryColor,
+                            color: categoryTextColor,
                           ),
                         ),
                     ],
                   ),
-
-                  SizedBox(height: 8),
-
+                  const SizedBox(height: 8),
                   // News Title
                   Text(
                     newsData.title ?? "Không có tiêu đề",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
                     newsData.description ?? "",
-                    style: TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 12),
-
+                  const SizedBox(height: 12),
                   // PubDate và Action buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // PubDate thay thế category
                       Expanded(
                         child: Text(
                           _formatPubDate(context, newsData.pubDate),
-                          style: TextStyle(fontSize: 13),
+                          style: const TextStyle(fontSize: 13),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-
-                      // Action buttons
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

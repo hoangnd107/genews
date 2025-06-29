@@ -368,20 +368,38 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     return Scaffold(
       bottomNavigationBar: CustomBottomNavBar(selectedIndex: selectedIndex),
       appBar: AppBar(
-        elevation: 1,
-        shadowColor:
-            isDarkMode
-                ? Colors.black.withOpacity(0.5)
-                : Colors.grey.withOpacity(0.2),
-        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+        elevation: 0, // Remove default shadow for a cleaner gradient
+        backgroundColor: Colors.transparent, // Make AppBar transparent
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors:
+                  isDarkMode
+                      ? [
+                        Color(0xFF232526), // dark gray
+                        Color(0xFF414345), // slightly lighter gray
+                        Color(0xFF5B86E5), // blue
+                        Color(0xFF232526), // dark gray again for depth
+                      ]
+                      : [
+                        Color(0xFF36D1C4), // teal
+                        Color(0xFF5B86E5), // blue
+                        Color(0xFF6A82FB), // light blue
+                        Color(0xFF8F6ED5), // purple
+                      ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        shadowColor: Colors.transparent, // Remove shadow
         foregroundColor: isDarkMode ? Colors.white : Colors.black87,
-        // SỬA ĐỔI: Title cố định
         title: const Text(
           "Điểm tin",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // SỬA ĐỔI: Gom các nút vào PopupMenuButton
+          // SỬA ĐỔI: Gom các nút vào PopupMenuButton, sắp xếp lại và chỉnh màu sắc
           PopupMenuButton<String>(
             icon: Icon(
               Icons.more_vert,
@@ -390,9 +408,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
             color: isDarkMode ? Colors.grey[800] : Colors.white,
             onSelected: (value) {
               switch (value) {
-                case 'toggle_adblock':
-                  _toggleAdBlocking();
-                  break;
                 case 'bookmark':
                   _toggleSaved();
                   break;
@@ -412,37 +427,13 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                 case 'reload':
                   _controller.reload();
                   break;
+                case 'toggle_adblock':
+                  _toggleAdBlocking();
+                  break;
               }
             },
             itemBuilder:
                 (context) => [
-                  // Item bật/tắt chặn quảng cáo
-                  PopupMenuItem(
-                    value: 'toggle_adblock',
-                    child: Row(
-                      children: [
-                        Icon(
-                          _isAdBlockingEnabled
-                              ? Icons.shield
-                              : Icons.shield_outlined,
-                          color:
-                              _isAdBlockingEnabled
-                                  ? Colors.green
-                                  : (isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _isAdBlockingEnabled
-                              ? 'Tắt chặn quảng cáo'
-                              : 'Bật chặn quảng cáo',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
                   // Item lưu tin
                   PopupMenuItem(
                     value: 'bookmark',
@@ -454,8 +445,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                               isSaved
                                   ? Colors.orange
                                   : (isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87),
+                                      ? Colors.white70
+                                      : Colors.orange.shade300),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -471,7 +462,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                         Icon(
                           Icons.ios_share,
                           size: 20,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                          color: Colors.blueAccent,
                         ),
                         const SizedBox(width: 12),
                         const Text('Chia sẻ'),
@@ -483,17 +474,12 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                     value: 'copy_link',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.copy,
-                          size: 20,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
+                        Icon(Icons.copy, size: 20, color: Colors.green),
                         const SizedBox(width: 12),
                         const Text('Sao chép liên kết'),
                       ],
                     ),
                   ),
-                  const PopupMenuDivider(),
                   // Item cỡ chữ
                   PopupMenuItem(
                     value: 'font_size',
@@ -502,7 +488,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                         Icon(
                           Icons.text_fields,
                           size: 20,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                          color: Colors.purpleAccent,
                         ),
                         const SizedBox(width: 12),
                         const Text('Cỡ chữ'),
@@ -514,13 +500,41 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                     value: 'reload',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 20,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
+                        Icon(Icons.refresh, size: 20, color: Colors.grey),
                         const SizedBox(width: 12),
                         const Text('Tải lại trang'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  // Item bật/tắt chặn quảng cáo (đặt cuối, nổi bật)
+                  PopupMenuItem(
+                    value: 'toggle_adblock',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isAdBlockingEnabled
+                              ? Icons.shield
+                              : Icons.shield_outlined,
+                          color:
+                              _isAdBlockingEnabled
+                                  ? Colors.green
+                                  : Colors.redAccent,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _isAdBlockingEnabled
+                              ? 'Tắt chặn quảng cáo'
+                              : 'Bật chặn quảng cáo',
+                          style: TextStyle(
+                            color:
+                                _isAdBlockingEnabled
+                                    ? Colors.green
+                                    : Colors.redAccent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -580,6 +594,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
           },
           tooltip: 'Tóm tắt',
           icon: Container(
+            height: 40,
+            width: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -595,7 +611,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(8),
             child: const Icon(Icons.bolt, color: Colors.white, size: 28),
           ),
           label: Text(
