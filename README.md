@@ -102,6 +102,7 @@ genews/
 
 ---
 
+
 ## 📱 App Preview
 
 > You can view more detailed app screenshots in the `assets/screenshots/` folder.
