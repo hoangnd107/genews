@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:genews/app/themes/colors.dart';
 
 class PaginatedListView<T> extends StatefulWidget {
   final List<T> items;
@@ -13,7 +14,7 @@ class PaginatedListView<T> extends StatefulWidget {
     super.key,
     required this.items,
     required this.itemBuilder,
-    this.itemsPerPage = 10,
+    this.itemsPerPage = 5,
     this.padding,
     this.emptyMessage = 'Không có dữ liệu',
     this.header,
@@ -27,6 +28,7 @@ class PaginatedListView<T> extends StatefulWidget {
 class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   int _currentPage = 0;
   late ScrollController _scrollController;
+  final ScrollController _pageNumberController = ScrollController();
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     if (widget.scrollController == null) {
       _scrollController.dispose();
     }
+    _pageNumberController.dispose();
     super.dispose();
   }
 
@@ -54,16 +57,30 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   }
 
   void _goToPage(int page) {
+    final newPage = page.clamp(0, _totalPages - 1);
+    if (newPage == _currentPage) return;
+
     setState(() {
-      _currentPage = page.clamp(0, _totalPages - 1);
+      _currentPage = newPage;
     });
 
-    // Scroll to top when changing page
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
+      );
+    }
+
+    if (_pageNumberController.hasClients) {
+      final targetOffset =
+          (newPage * 48.0) -
+          (_pageNumberController.position.viewportDimension / 2) +
+          24.0;
+      _pageNumberController.animateTo(
+        targetOffset.clamp(0.0, _pageNumberController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
       );
     }
   }
@@ -89,7 +106,6 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     return Column(
       children: [
         if (widget.header != null) widget.header!,
-
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
@@ -101,105 +117,72 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
             },
           ),
         ),
-
         if (_totalPages > 1) _buildPaginationControls(),
       ],
     );
   }
 
   Widget _buildPaginationControls() {
-    if (_totalPages <= 1) return const SizedBox.shrink();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppColors.primaryColor;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
-        border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
-          // Pagination info
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.1),
-                  Theme.of(context).primaryColor.withOpacity(0.05),
-                ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              'Trang ${_currentPage + 1} / $_totalPages',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                // SỬA ĐỔI: Luôn sử dụng primaryColor từ theme sáng
+                color: primaryColor,
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: Theme.of(context).primaryColor,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Trang ${_currentPage + 1} / $_totalPages',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ],
             ),
           ),
-
-          const SizedBox(height: 20),
-
-          // Pagination controls
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Previous button
+              // Nút "Trước"
               _buildPaginationButton(
-                icon: Icons.chevron_left,
-                label: 'Trước',
+                icon: Icons.arrow_back_ios_new,
                 isEnabled: _currentPage > 0,
-                onPressed:
-                    _currentPage > 0 ? () => _goToPage(_currentPage - 1) : null,
+                onPressed: () => _goToPage(_currentPage - 1),
               ),
-
-              const SizedBox(width: 16),
-
-              // Page numbers
+              // 2. Tăng khoảng cách
+              const SizedBox(width: 12),
+              // Danh sách số trang có thể cuộn
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _pageNumberController,
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: _buildPageNumbers(),
-                  ),
+                  child: Row(children: _buildPageNumbers()),
                 ),
               ),
-
-              const SizedBox(width: 16),
-
-              // Next button
+              // 2. Tăng khoảng cách
+              const SizedBox(width: 12),
+              // Nút "Sau"
               _buildPaginationButton(
-                icon: Icons.chevron_right,
-                label: 'Sau',
+                icon: Icons.arrow_forward_ios,
                 isEnabled: _currentPage < _totalPages - 1,
-                onPressed:
-                    _currentPage < _totalPages - 1
-                        ? () => _goToPage(_currentPage + 1)
-                        : null,
-                isIconRight: true,
+                onPressed: () => _goToPage(_currentPage + 1),
               ),
             ],
           ),
@@ -210,80 +193,31 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
 
   Widget _buildPaginationButton({
     required IconData icon,
-    required String label,
     required bool isEnabled,
-    required VoidCallback? onPressed,
-    bool isIconRight = false,
+    required VoidCallback onPressed,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: isEnabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            gradient:
+            color:
                 isEnabled
-                    ? LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                    : null,
-            color: isEnabled ? null : Colors.grey.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow:
-                isEnabled
-                    ? [
-                      BoxShadow(
-                        color: Theme.of(context).primaryColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                    : null,
+                    ? (isDarkMode ? Colors.grey[800] : Colors.grey[200])
+                    : (isDarkMode ? const Color(0xFF2A2A2A) : Colors.grey[100]),
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children:
-                isIconRight
-                    ? [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: isEnabled ? Colors.white : Colors.grey,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        icon,
-                        color: isEnabled ? Colors.white : Colors.grey,
-                        size: 18,
-                      ),
-                    ]
-                    : [
-                      Icon(
-                        icon,
-                        color: isEnabled ? Colors.white : Colors.grey,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: isEnabled ? Colors.white : Colors.grey,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+          child: Icon(
+            icon,
+            color:
+                isEnabled
+                    ? (isDarkMode ? Colors.white70 : Colors.black54)
+                    : (isDarkMode ? Colors.grey[700] : Colors.grey[400]),
+            size: 16,
           ),
         ),
       ),
@@ -294,50 +228,29 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     List<Widget> pageNumbers = [];
 
     if (_totalPages <= 7) {
-      // Show all pages if total pages <= 7
       for (int i = 0; i < _totalPages; i++) {
         pageNumbers.add(_buildPageNumber(i));
-        if (i < _totalPages - 1) {
-          pageNumbers.add(const SizedBox(width: 8));
-        }
       }
     } else {
-      // Smart pagination for many pages
       if (_currentPage <= 3) {
-        // Show first 5 pages + ellipsis + last page
         for (int i = 0; i < 5; i++) {
           pageNumbers.add(_buildPageNumber(i));
-          if (i < 4) pageNumbers.add(const SizedBox(width: 8));
         }
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildEllipsis());
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildPageNumber(_totalPages - 1));
       } else if (_currentPage >= _totalPages - 4) {
-        // Show first page + ellipsis + last 5 pages
         pageNumbers.add(_buildPageNumber(0));
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildEllipsis());
-        pageNumbers.add(const SizedBox(width: 8));
         for (int i = _totalPages - 5; i < _totalPages; i++) {
           pageNumbers.add(_buildPageNumber(i));
-          if (i < _totalPages - 1) pageNumbers.add(const SizedBox(width: 8));
         }
       } else {
-        // Show first page + ellipsis + current ±2 + ellipsis + last page
         pageNumbers.add(_buildPageNumber(0));
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildEllipsis());
-        pageNumbers.add(const SizedBox(width: 8));
-
-        for (int i = _currentPage - 2; i <= _currentPage + 2; i++) {
+        for (int i = _currentPage - 1; i <= _currentPage + 1; i++) {
           pageNumbers.add(_buildPageNumber(i));
-          if (i < _currentPage + 2) pageNumbers.add(const SizedBox(width: 8));
         }
-
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildEllipsis());
-        pageNumbers.add(const SizedBox(width: 8));
         pageNumbers.add(_buildPageNumber(_totalPages - 1));
       }
     }
@@ -345,61 +258,44 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     return pageNumbers;
   }
 
+  // SỬA ĐỔI: Tùy chỉnh màu sắc số trang active theo yêu cầu
   Widget _buildPageNumber(int pageIndex) {
     final isActive = pageIndex == _currentPage;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _goToPage(pageIndex),
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient:
-                isActive
-                    ? LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                    : null,
-            color: isActive ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color:
-                  isActive
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey.withOpacity(0.3),
-              width: 1.5,
-            ),
-            boxShadow:
-                isActive
-                    ? [
-                      BoxShadow(
-                        color: Theme.of(context).primaryColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                    : null,
+    return GestureDetector(
+      onTap: () => _goToPage(pageIndex),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 36,
+        height: 36,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          // SỬA ĐỔI: Sử dụng gradient màu xanh cho trang active
+          gradient: isActive
+              ? LinearGradient(
+                  colors: [Colors.blue, Colors.blue.withOpacity(0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isActive ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            // SỬA ĐỔI: Sử dụng màu xanh cho viền khi active
+            color: isActive ? Colors.blue : (isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
+            width: 1.5,
           ),
-          child: Center(
-            child: Text(
-              '${pageIndex + 1}',
-              style: TextStyle(
-                color:
-                    isActive
-                        ? Colors.white
-                        : Theme.of(context).textTheme.bodyMedium?.color,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                fontSize: 14,
-              ),
+        ),
+        child: Center(
+          child: Text(
+            '${pageIndex + 1}',
+            style: TextStyle(
+              color: isActive
+                  ? Colors.white
+                  : (isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black54),
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
             ),
           ),
         ),
@@ -407,21 +303,18 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
     );
   }
 
+  // SỬA ĐỔI: Tùy chỉnh màu sắc dấu "..." cho dark mode
   Widget _buildEllipsis() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1),
-      ),
-      child: const Center(
+      width: 36,
+      height: 36,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      child: Center(
         child: Text(
           '...',
           style: TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
+            color: isDarkMode ? Colors.grey[700] : Colors.grey[400],
           ),
         ),
       ),

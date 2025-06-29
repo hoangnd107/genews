@@ -5,6 +5,7 @@ import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart';
 import 'package:genews/shared/services/offline_news_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
 
 class NewsCard extends StatelessWidget {
   final Result newsData;
@@ -20,56 +21,9 @@ class NewsCard extends StatelessWidget {
     this.isSaved = false,
   });
 
-  String _translateCategory(dynamic category) {
-    if (category == null) return "";
-    if (category is List && category.isNotEmpty) {
-      for (var cat in category) {
-        if (_isVietnamese(cat.toString())) return cat.toString();
-      }
-      return _categoryMapToVietnamese(category.first.toString());
-    }
-    if (category is String) {
-      if (_isVietnamese(category)) return category;
-      return _categoryMapToVietnamese(category);
-    }
-    return "";
-  }
-
-  String _categoryMapToVietnamese(String category) {
-    final Map<String, String> categoryTranslations = {
-      'business': 'Kinh doanh',
-      'education': 'Giáo dục',
-      'entertainment': 'Giải trí',
-      'environment': 'Môi trường',
-      'food': 'Ẩm thực',
-      'health': 'Sức khỏe',
-      'lifestyle': 'Đời sống',
-      'politics': 'Chính trị',
-      'science': 'Khoa học',
-      'sports': 'Thể thao',
-      'technology': 'Công nghệ',
-      'top': 'Nổi bật',
-      'tourism': 'Du lịch',
-      'world': 'Thế giới',
-      'other': 'Khác',
-    };
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    if (categoryTranslations.containsKey(clean))
-      return categoryTranslations[clean]!;
-    for (var entry in categoryTranslations.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return category;
-  }
-
-  // Helper method to check if text contains Vietnamese characters
-  bool _isVietnamese(String text) {
-    // Check for Vietnamese-specific characters
-    final vietnameseRegex = RegExp(
-      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
-    );
-    return vietnameseRegex.hasMatch(text);
+  // Hàm duy nhất để hiển thị category
+  String _getCategoryDisplayName(dynamic category) {
+    return CategoryMappingService.toVietnamese(category);
   }
 
   String _formatPubDate(BuildContext context, DateTime? pubDateTime) {
@@ -139,7 +93,9 @@ class NewsCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       if (newsData.category != null)
                         Text(
-                          _translateCategory(newsData.category),
+                          _getCategoryDisplayName(
+                            newsData.category,
+                          ), // Sử dụng duy nhất hàm này
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,

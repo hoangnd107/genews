@@ -26,7 +26,7 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
   Future<NewsDataModel> fetchTrendingNews() async {
     try {
       log(
-        "🔥 Fetching 500 news from Firestore collection: $articlesCollectionName",
+        "🔥 Fetching 100 news from Firestore collection: $articlesCollectionName",
       );
 
       // Check if offline and has cached data
@@ -47,11 +47,10 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
         );
       }
 
-      // Fetch from Firestore - increase limit to 500
       final querySnapshot =
           await _firestore
               .collection(articlesCollectionName)
-              .limit(500) // Increased from 100 to 500
+              .limit(100)
               .get();
 
       if (querySnapshot.docs.isEmpty) {

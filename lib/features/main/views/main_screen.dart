@@ -15,10 +15,10 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    HomeScreen(),
-    DiscoverScreen(),
-    BookmarksScreen(),
-    SettingsScreen(),
+    const HomeScreen(),
+    const DiscoverScreen(),
+    const BookmarksScreen(),
+    const SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -32,61 +32,89 @@ class _MainScreenState extends State<MainScreen> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    final bottomNavBarBackgroundColor =
-        isDarkMode ? theme.colorScheme.surface : Colors.white;
-
-    final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
+    final navBarColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Scaffold(
-      extendBody: false, // Đảm bảo body không extend dưới bottom navigation bar
-      extendBodyBehindAppBar:
-          false, // Đảm bảo body không extend phía sau app bar
-      resizeToAvoidBottomInset:
-          false, // Ngăn bottom nav bar bị đẩy lên khi có keyboard
-      body: _screens[_selectedIndex],
+      body: IndexedStack(index: _selectedIndex, children: _screens),
+      // SỬA ĐỔI: Sử dụng Row thay vì BottomNavigationBar
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         decoration: BoxDecoration(
-          color: bottomNavBarBackgroundColor,
-          border: Border(top: BorderSide(color: borderColor, width: 0.5)),
+          color: navBarColor,
+          borderRadius: BorderRadius.circular(50),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 0,
-              blurRadius: 5,
-              offset: Offset(0, -2), // changes position of shadow
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          selectedItemColor: isDarkMode ? Colors.white : Colors.grey[900],
-          unselectedItemColor: Colors.grey,
-          backgroundColor: isDarkMode ? Colors.grey[900] : Colors.transparent,
-          elevation: 0,
-          enableFeedback: true, // Thêm haptic feedback khi tap
-          showSelectedLabels: true, // Luôn hiển thị label của item được chọn
-          showUnselectedLabels:
-              true, // Luôn hiển thị label của item không được chọn
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Trang chủ',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore),
-              label: 'Khám phá',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_border),
-              activeIcon: Icon(Icons.bookmark),
-              label: 'Đã lưu',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Cài đặt'),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround, // Căn giữa các item
+          children: [
+            _buildNavItem(Icons.home_outlined, Icons.home, 'Trang chủ', 0),
+            _buildNavItem(Icons.explore_outlined, Icons.explore, 'Khám phá', 1),
+            _buildNavItem(Icons.bookmark_border, Icons.bookmark, 'Đã lưu', 2),
+            _buildNavItem(Icons.menu_outlined, Icons.menu, 'Cài đặt', 3),
           ],
+        ),
+      ),
+    );
+  }
+
+  // SỬA ĐỔI: Widget cho từng item, sử dụng InkWell và Column
+  Widget _buildNavItem(
+    IconData icon,
+    IconData activeIcon,
+    String label,
+    int index,
+  ) {
+    final isSelected = _selectedIndex == index;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final selectedColor = isDarkMode ? Colors.white : Colors.black87;
+    final unselectedColor = isDarkMode ? Colors.grey[600]! : Colors.grey[500]!;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment:
+                MainAxisAlignment.center, // Căn giữa theo chiều dọc
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 1.0, end: isSelected ? 1.25 : 1.0),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutBack,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: Icon(
+                      isSelected ? activeIcon : icon,
+                      size: 24,
+                      color: isSelected ? selectedColor : unselectedColor,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected ? selectedColor : unselectedColor,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

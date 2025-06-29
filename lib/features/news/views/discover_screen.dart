@@ -12,6 +12,7 @@ import 'package:genews/app/themes/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 import 'package:genews/shared/widgets/paginated_list_view.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -21,84 +22,6 @@ class DiscoverScreen extends StatefulWidget {
 }
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
-  // Map màu sắc cho từng category
-  static final Map<String, List<Color>> _categoryColors = {
-    'business': [
-      Color(0xFF2E7D32),
-      Color(0xFF4CAF50),
-    ], // Xanh lá - kinh doanh, tăng trưởng
-    'crime': [Color(0xFFD32F2F), Color(0xFFEF5350)], // Đỏ - nguy hiểm, cảnh báo
-    'domestic': [
-      Color(0xFF1976D2),
-      Color(0xFF2196F3),
-    ], // Xanh dương - ổn định, tin cậy
-    'education': [
-      Color(0xFF7B1FA2),
-      Color(0xFF9C27B0),
-    ], // Tím - trí tuệ, học vấn
-    'entertainment': [
-      Color(0xFFE91E63),
-      Color(0xFFF06292),
-    ], // Hồng - vui vẻ, giải trí
-    'environment': [
-      Color(0xFF388E3C),
-      Color(0xFF66BB6A),
-    ], // Xanh lá đậm - thiên nhiên
-    'food': [Color(0xFFFF5722), Color(0xFFFF7043)], // Cam đỏ - ấm áp, thực phẩm
-    'health': [
-      Color(0xFF00ACC1),
-      Color(0xFF26C6DA),
-    ], // Xanh ngọc - sức khỏe, y tế
-    'lifestyle': [
-      Color(0xFFAB47BC),
-      Color(0xFFBA68C8),
-    ], // Tím nhạt - thời trang, phong cách
-    'politics': [
-      Color(0xFF5D4037),
-      Color(0xFF8D6E63),
-    ], // Nâu - nghiêm túc, chính trị
-    'science': [
-      Color(0xFF303F9F),
-      Color(0xFF3F51B5),
-    ], // Xanh đậm - khoa học, công nghệ
-    'sports': [
-      Color(0xFFFF6F00),
-      Color(0xFFFF9800),
-    ], // Cam - năng động, thể thao
-    'technology': [
-      Color(0xFF455A64),
-      Color(0xFF607D8B),
-    ], // Xám xanh - công nghệ, hiện đại
-    'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)], // Vàng - nổi bật, quan trọng
-    'tourism': [
-      Color(0xFF0097A7),
-      Color(0xFF00BCD4),
-    ], // Xanh biển - du lịch, khám phá
-    'world': [
-      Color(0xFF512DA8),
-      Color(0xFF673AB7),
-    ], // Tím đậm - quốc tế, thế giới
-    'other': [Color(0xFF616161), Color(0xFF757575)], // Xám - trung tính
-    // Vietnamese categories (same colors as English equivalents)
-    'kinh doanh': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
-    'tội phạm': [Color(0xFFD32F2F), Color(0xFFEF5350)],
-    'trong nước': [Color(0xFF1976D2), Color(0xFF2196F3)],
-    'giáo dục': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
-    'giải trí': [Color(0xFFE91E63), Color(0xFFF06292)],
-    'môi trường': [Color(0xFF388E3C), Color(0xFF66BB6A)],
-    'ẩm thực': [Color(0xFFFF5722), Color(0xFFFF7043)],
-    'sức khỏe': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
-    'đời sống': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
-    'chính trị': [Color(0xFF5D4037), Color(0xFF8D6E63)],
-    'khoa học': [Color(0xFF303F9F), Color(0xFF3F51B5)],
-    'thể thao': [Color(0xFFFF6F00), Color(0xFFFF9800)],
-    'công nghệ': [Color(0xFF455A64), Color(0xFF607D8B)],
-    'nổi bật': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
-    'du lịch': [Color(0xFF0097A7), Color(0xFF00BCD4)],
-    'thế giới': [Color(0xFF512DA8), Color(0xFF673AB7)],
-    'khác': [Color(0xFF616161), Color(0xFF757575)],
-  };
-
   final TextEditingController _searchController = TextEditingController();
   final BookmarksService _bookmarksService = BookmarksService();
   final Map<String, bool> _savedStates = {};
@@ -209,129 +132,30 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           article.description?.toLowerCase().contains(lowerQuery) ?? false;
       final sourceMatch =
           article.sourceName?.toLowerCase().contains(lowerQuery) ?? false;
-      final categoryMatch =
-          article.category?.toString().toLowerCase().contains(lowerQuery) ??
-          false;
+      final categoryMatch = CategoryMappingService.toVietnamese(
+        article.category,
+      ).toLowerCase().contains(lowerQuery);
 
       return titleMatch || descMatch || sourceMatch || categoryMatch;
     }).toList();
   }
 
-  // Method để lấy màu sắc cho category
+  // Method để lấy màu sắc cho category (dùng cho UI)
   List<Color> _getCategoryColors(String category) {
-    String cleanCategory =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    // Try to find exact match first
-    if (_categoryColors.containsKey(cleanCategory)) {
-      return _categoryColors[cleanCategory]!;
-    }
-
-    // If no exact match, look for partial matches
-    for (var entry in _categoryColors.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
-      }
-    }
-
-    // Default colors if no match found
-    return [
-      AppColors.primaryColor.withOpacity(0.8),
-      AppColors.primaryColor.withOpacity(0.6),
-    ];
+    // Chuẩn hóa category về tiếng Việt để lấy màu
+    final vietnameseCategory = CategoryMappingService.toVietnamese(category);
+    return CategoryMappingService.getCategoryColors(vietnameseCategory);
   }
 
   // Method để lấy icon cho từng category
-  IconData _getCategoryIcon(String category) {
-    String cleanCategory =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    const categoryIcons = {
-      'business': Icons.business_center,
-      'crime': Icons.security,
-      'domestic': Icons.home,
-      'education': Icons.school,
-      'entertainment': Icons.movie,
-      'environment': Icons.eco,
-      'food': Icons.restaurant,
-      'health': Icons.local_hospital,
-      'lifestyle': Icons.style,
-      'politics': Icons.account_balance,
-      'science': Icons.science,
-      'sports': Icons.sports_soccer,
-      'technology': Icons.computer,
-      'top': Icons.star,
-      'tourism': Icons.flight,
-      'world': Icons.public,
-      'other': Icons.category,
-    };
-
-    // Try to find exact match first
-    if (categoryIcons.containsKey(cleanCategory)) {
-      return categoryIcons[cleanCategory]!;
-    }
-
-    // If no exact match, look for partial matches
-    for (var entry in categoryIcons.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
-      }
-    }
-
-    return Icons.category; // Default icon
+  IconData _getCategoryIcon(String? category) {
+    // Chuẩn hóa category về tiếng Việt để lấy icon
+    final vietnameseCategory = CategoryMappingService.toVietnamese(category);
+    return CategoryMappingService.getCategoryIcon(vietnameseCategory);
   }
 
-  // Method _getCategoryDisplayName sử dụng CategoryMappingService
   String _getCategoryDisplayName(dynamic category) {
-    if (category == null) return "Khác";
-    if (category is List && category.isNotEmpty) {
-      for (var cat in category) {
-        if (_isVietnamese(cat.toString())) return cat.toString();
-      }
-      return _categoryMapToVietnamese(category.first.toString());
-    }
-    if (category is String) {
-      if (_isVietnamese(category)) return category;
-      return _categoryMapToVietnamese(category);
-    }
-    return "Khác";
-  }
-
-  String _categoryMapToVietnamese(String category) {
-    final Map<String, String> categoryTranslations = {
-      'business': 'Kinh doanh',
-      'education': 'Giáo dục',
-      'entertainment': 'Giải trí',
-      'environment': 'Môi trường',
-      'food': 'Ẩm thực',
-      'health': 'Sức khỏe',
-      'lifestyle': 'Đời sống',
-      'politics': 'Chính trị',
-      'science': 'Khoa học',
-      'sports': 'Thể thao',
-      'technology': 'Công nghệ',
-      'top': 'Nổi bật',
-      'tourism': 'Du lịch',
-      'world': 'Thế giới',
-      'other': 'Khác',
-    };
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    if (categoryTranslations.containsKey(clean))
-      return categoryTranslations[clean]!;
-    for (var entry in categoryTranslations.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return category;
-  }
-
-  // Helper method to check if text contains Vietnamese characters
-  bool _isVietnamese(String text) {
-    // Check for Vietnamese-specific characters
-    final vietnameseRegex = RegExp(
-      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
-    );
-    return vietnameseRegex.hasMatch(text);
+    return CategoryMappingService.toVietnamese(category);
   }
 
   void _openNewsWebView(Result article) {
@@ -340,8 +164,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       MaterialPageRoute(
         builder:
             (context) => webview.NewsWebViewScreen(
-              url: article.link ?? '',
-              title: article.title ?? '',
+              url: article.link ?? "",
+              title: article.title ?? "",
               newsData: article,
             ),
       ),
@@ -710,7 +534,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                           : Colors.grey[600],
                                 ),
                               ),
-                        ),
+                          ),
                       ),
                       Expanded(
                         child: Padding(
@@ -930,8 +754,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     if (allArticles.isEmpty) return const SizedBox();
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    // Skip the first 4 articles since they're already shown in trending
     final articlesForList = allArticles.skip(4).toList();
+
+    // SỬA LỖI: Chỉ hiển thị section này nếu có tin tức
+    if (articlesForList.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,10 +805,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
         // Paginated list of all news
         SizedBox(
-          height: 600, // Fixed height for the paginated list
+          height: 600,
           child: PaginatedListView<Result>(
             items: articlesForList,
-            itemsPerPage: 15,
+            itemsPerPage: 5,
             emptyMessage: 'Không có tin tức nào',
             itemBuilder: (context, article, index) {
               final articleId = article.articleId ?? article.link ?? '';

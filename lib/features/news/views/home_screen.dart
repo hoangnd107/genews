@@ -12,6 +12,8 @@ import 'package:genews/features/news/widgets/category_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
+import 'package:genews/shared/widgets/paginated_list_view.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -93,16 +95,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _onCategorySelected(String category) {
+  void _onCategorySelected(String? category) {
     setState(() {
       if (selectedCategory == category) {
         selectedCategory = null;
-        // Load trending news when category is cleared
-        context.read<NewsProvider>().fetchTrendingNews();
       } else {
         selectedCategory = category;
-        // Load news by category when category is selected
-        context.read<NewsProvider>().fetchNewsByCategory(category);
       }
     });
   }
@@ -137,7 +135,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final newsProvider = context.read<NewsProvider>();
 
-    // Use Firestore search if no category filter is applied
     if (selectedCategory == null) {
       newsProvider.searchArticles(searchQuery).then((_) {
         final searchResults = newsProvider.allNews.results ?? [];
@@ -148,7 +145,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _loadSavedStates(searchResults);
       });
     } else {
-      // Use local filter when category is selected (for combined search)
       final allArticles = newsProvider.allNews.results ?? [];
       final searchResults = _getFilteredNews(allArticles, searchQuery);
       setState(() {
@@ -160,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onSearchChanged(String query) {
-    setState(() {}); // Update suffixIcon
+    setState(() {});
     _performSearch(query);
   }
 
@@ -175,17 +171,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Result> _getFilteredNews(List<Result> allNews, [String? searchQuery]) {
     List<Result> filtered = List.from(allNews);
 
-    // Apply category filter
+    // SỬA LẠI: Lọc category bằng tiếng Việt để đảm bảo logic đúng
     if (selectedCategory != null) {
+      // selectedCategory đã là tiếng Việt (ví dụ: "Kinh doanh")
       filtered =
           filtered.where((article) {
-            String articleCategory =
-                (article.category ?? '').toString().toLowerCase();
-            return articleCategory.contains(selectedCategory!.toLowerCase());
+            // Chuẩn hóa category của bài viết về tiếng Việt
+            final articleVietnameseCat = CategoryMappingService.toVietnamese(
+              article.category,
+            );
+            // So sánh 2 chuỗi tiếng Việt
+            return articleVietnameseCat == selectedCategory;
           }).toList();
     }
 
-    // Apply search filter
+    // Search filter (phần này đã đúng, giữ nguyên)
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final query = searchQuery.toLowerCase();
       filtered =
@@ -196,8 +196,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 article.description?.toLowerCase().contains(query) ?? false;
             final sourceMatch =
                 article.sourceName?.toLowerCase().contains(query) ?? false;
-
-            return titleMatch || descMatch || sourceMatch;
+            final categoryMatch = CategoryMappingService.toVietnamese(
+              article.category,
+            ).toLowerCase().contains(query);
+            return titleMatch || descMatch || sourceMatch || categoryMatch;
           }).toList();
     }
 
@@ -227,60 +229,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Chuẩn hóa category: Ưu tiên tiếng Việt, nếu không có thì dịch từ tiếng Anh
-  String normalizeCategory(dynamic category) {
-    if (category == null) return 'Khác';
-    if (category is List && category.isNotEmpty) {
-      // Ưu tiên giá trị tiếng Việt có dấu nếu có
-      for (var cat in category) {
-        if (_isVietnamese(cat.toString())) return cat.toString();
-      }
-      // Nếu không có, dịch giá trị đầu tiên sang tiếng Việt
-      return _categoryMapToVietnamese(category.first.toString());
-    }
-    if (category is String) {
-      if (_isVietnamese(category)) return category;
-      return _categoryMapToVietnamese(category);
-    }
-    return "Khác";
-  }
-
-  String _categoryMapToVietnamese(String category) {
-    final Map<String, String> categoryTranslations = {
-      'business': 'Kinh doanh',
-      'education': 'Giáo dục',
-      'entertainment': 'Giải trí',
-      'environment': 'Môi trường',
-      'food': 'Ẩm thực',
-      'health': 'Sức khỏe',
-      'lifestyle': 'Đời sống',
-      'politics': 'Chính trị',
-      'science': 'Khoa học',
-      'sports': 'Thể thao',
-      'technology': 'Công nghệ',
-      'top': 'Nổi bật',
-      'tourism': 'Du lịch',
-      'world': 'Thế giới',
-      'other': 'Khác',
-    };
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    if (categoryTranslations.containsKey(clean))
-      return categoryTranslations[clean]!;
-    for (var entry in categoryTranslations.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return category;
-  }
-
-  // Kiểm tra có phải tiếng Việt không
-  bool _isVietnamese(String text) {
-    final vietnameseRegex = RegExp(
-      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
-    );
-    return vietnameseRegex.hasMatch(text);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,14 +245,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
               return CustomScrollView(
                 slivers: [
-                  // Modern App Bar
                   _buildSliverAppBar(),
-
-                  // Search Bar (when active)
                   if (_isSearchActive)
                     SliverToBoxAdapter(child: _buildSearchBar()),
-
-                  // Content
                   SliverToBoxAdapter(
                     child: _buildContent(newsState, allArticles),
                   ),
@@ -362,72 +305,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           alignment: Alignment.centerLeft,
           child: Padding(
             padding: const EdgeInsets.only(left: 20),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Image.asset(
-                        'assets/icon/icon.png',
-                        height: 20,
-                        width: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ShaderMask(
-                      shaderCallback:
-                          (bounds) => const LinearGradient(
-                            colors: [
-                              Color(0xFF0096FF), // 8%
-                              Color(0xFF4D49FF), // 39%
-                              Color(0xFF9600FF), // 88%
-                              Color(0xFFB600DF), // 27%
-                              Color(0xFFF6009F), // 69%
-                              Color(0xFFFF0096), // 10%
-                              Color(0xFFFF4D49), // 43%
-                              Color(0xFFFF8D09), // 80%
-                            ],
-                            stops: [
-                              0.08,
-                              0.27,
-                              0.39,
-                              0.43,
-                              0.69,
-                              0.80,
-                              0.88,
-                              1.0,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ).createShader(bounds),
-                      child: const Text(
-                        'GeNews',
-                        style: TextStyle(
-                          color: Colors.white, // Base color for ShaderMask
-                          fontFamily: 'Inter', // Modern, professional font
-                          fontWeight: FontWeight.w700, // Bold but refined
-                          fontSize: 26,
-                          letterSpacing: -0.5, // Tight letter spacing
-                          height: 1.2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                            ),
-                          ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.asset(
+                    'assets/icon/icon.png',
+                    height: 20,
+                    width: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ShaderMask(
+                  shaderCallback:
+                      (bounds) => const LinearGradient(
+                        colors: [
+                          Color(0xFF0096FF),
+                          Color(0xFF4D49FF),
+                          Color(0xFF9600FF),
+                          Color(0xFFB600DF),
+                          Color(0xFFF6009F),
+                          Color(0xFFFF0096),
+                          Color(0xFFFF4D49),
+                          Color(0xFFFF8D09),
+                        ],
+                        stops: [0.08, 0.27, 0.39, 0.43, 0.69, 0.80, 0.88, 1.0],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds),
+                  child: const Text(
+                    'GeNews',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 26,
+                      letterSpacing: -0.5,
+                      height: 1.2,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -439,9 +367,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF1a1a2e), // Dark navy blue
-                Color(0xFF16213e), // Deep blue
-                Color(0xFF0f3460), // Medium blue
+                Color(0xFF1a1a2e),
+                Color(0xFF16213e),
+                Color(0xFF0f3460),
                 Color(0xFF533483),
               ],
               stops: const [0.0, 0.3, 0.7, 1.0],
@@ -518,17 +446,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildContent(NewsProvider newsState, List<Result> allArticles) {
-    // Always show error state if there's an error and no cached data
     if (allArticles.isEmpty && newsState.newsViewState == ViewState.error) {
       return _buildErrorState();
     }
-
-    // Show search results if searching
     if (_isSearchActive && _searchQuery.isNotEmpty) {
       return _buildSearchResults();
     }
-
-    // Show main content with cached data even when loading new data
     return _buildMainContent(
       allArticles,
       newsState.newsViewState == ViewState.busy,
@@ -591,15 +514,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       color: isDarkMode ? Colors.grey[900] : Colors.white,
       child: Column(
         children: [
-          // Featured Carousel Section
           if (allArticles.isNotEmpty && !_isSearchActive)
             _buildCarouselSection(allArticles),
-
-          // Category Section
           if (allArticles.isNotEmpty && !_isSearchActive)
             _buildCategorySection(),
-
-          // Loading indicator for category changes (small and non-intrusive)
           if (isLoading && selectedCategory != null)
             Container(
               padding: const EdgeInsets.all(16),
@@ -627,12 +545,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
               ),
             ),
-
-          // News List Section
           if (filteredArticles.isNotEmpty)
             _buildNewsListSection(filteredArticles),
-
-          // Empty state for filtered results
           if (filteredArticles.isEmpty && allArticles.isNotEmpty)
             _buildEmptyFilterState(),
         ],
@@ -697,6 +611,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildNewsListSection(List<Result> filteredArticles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    // SỬA LỖI: Chỉ hiển thị section này nếu có tin tức để lọc
+    if (filteredArticles.isEmpty) {
+      return const SizedBox.shrink(); // Không hiển thị gì nếu không có tin
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       color: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -710,12 +629,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: _getCategoryColors(selectedCategory),
+                      colors: CategoryMappingService.getCategoryColors(
+                        selectedCategory,
+                      ),
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _getCategoryIcon(selectedCategory),
+                    CategoryMappingService.getCategoryIcon(selectedCategory),
                     color: Colors.white,
                     size: 20,
                   ),
@@ -743,7 +664,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     Text(
                       selectedCategory != null
-                          ? _getCategoryDisplayName(selectedCategory)
+                          ? CategoryMappingService.toVietnamese(
+                            selectedCategory,
+                          )
                           : 'Tất cả tin tức',
                       style: TextStyle(
                         fontSize: 20,
@@ -764,12 +687,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(height: 16),
-
-          // News content based on view mode
-          _isListView
-              ? _buildNewsListView(filteredArticles)
-              : _buildNewsGridView(filteredArticles),
+          SizedBox(
+            height:
+                600, // Cần có chiều cao cố định hoặc trong một context có chiều cao
+            child: PaginatedListView<Result>(
+              items: filteredArticles,
+              itemsPerPage: 5,
+              emptyMessage: 'Không có tin tức nào',
+              itemBuilder: (context, article, index) {
+                final articleId = article.articleId ?? article.link ?? '';
+                final isSaved = _savedStates[articleId] ?? false;
+                return _isListView
+                    ? _buildListRowItem(article, isSaved)
+                    : _buildGridItem(article, isSaved);
+              },
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGridItem(Result article, bool isSaved) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: NewsCard(
+        newsData: article,
+        isSaved: isSaved,
+        onSave: () => _toggleSave(article),
+        onViewAnalysis: () => _openNewsAnalysis(article),
       ),
     );
   }
@@ -847,7 +793,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
         const SizedBox(height: 12),
-        // Enhanced Carousel indicators
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children:
@@ -994,10 +939,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final newsProvider = context.read<NewsProvider>();
     final allArticles = newsProvider.allNews.results ?? [];
-    // Duyệt qua tất cả bài viết, chuẩn hóa category, loại trùng
     final Set<String> categories = {};
     for (var article in allArticles) {
-      final cat = normalizeCategory(article.category);
+      final cat = CategoryMappingService.toVietnamese(article.category);
       if (cat.isNotEmpty && cat != 'Khác') categories.add(cat);
     }
     final List<String> availableCategories = ['Tất cả', ...categories.toList()];
@@ -1043,225 +987,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             availableCategories: availableCategories,
             selectedCategory: selectedCategory ?? 'Tất cả',
             onCategorySelected: (cat) {
-              if (cat == 'Tất cả') {
-                setState(() => selectedCategory = null);
-              } else {
-                setState(() => selectedCategory = cat);
-              }
+              _onCategorySelected(cat == 'Tất cả' ? null : cat);
             },
+            getCategoryColors:
+                (cat) => [Colors.blue, Colors.blue.withOpacity(0.7)],
+            enableAutoScroll: false, // Tắt scroll-to-center ở Home Screen
           ),
         ],
       ),
     );
   }
 
-  // ignore: unused_element
-  Widget _buildNewsContent(List<Result> filteredArticles) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    if (filteredArticles.isEmpty) {
-      return Container(
-        height: 300,
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                selectedCategory != null
-                    ? Icons.category_outlined
-                    : Icons.article_outlined,
-                size: 60,
-                color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                selectedCategory != null
-                    ? "Không tìm thấy tin tức cho chuyên mục này"
-                    : "Không có tin tức nào",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                selectedCategory != null
-                    ? "Thử chọn chuyên mục khác"
-                    : "Vui lòng thử lại sau",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      color: isDarkMode ? Colors.grey[900] : Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with count
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue, Colors.blue.withOpacity(0.7)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.article,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        selectedCategory != null
-                            ? _getCategoryDisplayName(selectedCategory)
-                            : 'Tất cả tin tức',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        '${filteredArticles.length} bài viết',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color:
-                              isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // News List/Grid - THAY ĐỔI LOGIC
-            _isListView
-                ? _buildNewsListView(filteredArticles) // Danh sách dạng dòng
-                : _buildNewsGridView(filteredArticles), // Lưới (mặc định)
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNewsGridView(List<Result> articles) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: articles.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final article = articles[index];
-        final articleId = article.articleId ?? article.link ?? '';
-        final isSaved = _savedStates[articleId] ?? false;
-
-        return GestureDetector(
-          onTap: () => _openNewsWebView(article),
-          child: NewsCard(
-            newsData: article,
-            onViewAnalysis: () => _openNewsAnalysis(article),
-            onSave: () => _toggleSave(article),
-            isSaved: isSaved,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNewsListView(List<Result> articles) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: articles.length,
-      separatorBuilder:
-          (context, index) => Divider(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-            height: 1,
-          ),
-      itemBuilder: (context, index) {
-        final article = articles[index];
-        final articleId = article.articleId ?? article.link ?? '';
-        final isSaved = _savedStates[articleId] ?? false;
-
-        return _buildListRowItem(article, isSaved);
-      },
-    );
-  }
-
-  // Thêm method để dịch category sang tiếng Việt
-  String _getCategoryDisplayName(String? category) {
-    if (category == null) return "Khác";
-
-    // Map dịch category
-    final Map<String, String> categoryTranslations = {
-      'business': 'Kinh doanh',
-      'education': 'Giáo dục',
-      'entertainment': 'Giải trí',
-      'environment': 'Môi trường',
-      'food': 'Ẩm thực',
-      'health': 'Sức khỏe',
-      'lifestyle': 'Đời sống',
-      'politics': 'Chính trị',
-      'science': 'Khoa học',
-      'sports': 'Thể thao',
-      'technology': 'Công nghệ',
-      'top': 'Nổi bật',
-      'tourism': 'Du lịch',
-      'world': 'Thế giới',
-      'other': 'Khác',
-    };
-
-    // Clean up category text và convert to lowercase for matching
-    String cleanCategory =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    // Try to find exact match first
-    if (categoryTranslations.containsKey(cleanCategory)) {
-      return categoryTranslations[cleanCategory]!;
-    }
-
-    // If no exact match, look for partial matches
-    for (var entry in categoryTranslations.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
-      }
-    }
-
-    // If no match found, capitalize first letter of each word
-    return cleanCategory
-        .split(' ')
-        .map(
-          (word) =>
-              word.isNotEmpty
-                  ? word[0].toUpperCase() + word.substring(1).toLowerCase()
-                  : word,
-        )
-        .join(' ');
-  }
-
-  // Cập nhật _buildListRowItem
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -1275,7 +1011,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ảnh bên trái
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(
@@ -1296,15 +1031,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
               ),
             ),
-
             const SizedBox(width: 12),
-
-            // Nội dung chính
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Text(
                     article.title ?? "Không có tiêu đề",
                     style: TextStyle(
@@ -1316,10 +1047,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Pub Date và Category (thay vì Source)
                   Row(
                     children: [
                       Icon(
@@ -1341,7 +1069,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Hiển thị Category thay vì Source
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -1353,7 +1080,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          _getCategoryDisplayName(article.category?.toString()),
+                          CategoryMappingService.toVietnamese(article.category),
                           style: TextStyle(
                             fontSize: 10,
                             color: AppColors.primaryColor,
@@ -1366,14 +1093,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
-            // Icon menu 3 chấm - CĂN GIỮA THEO CHIỀU DỌC
             SizedBox(
-              height: 80, // Cùng chiều cao với ảnh
+              height: 80,
               child: Center(
-                // Căn giữa theo chiều dọc
                 child: PopupMenuButton<String>(
                   icon: Icon(
                     Icons.more_vert,
@@ -1385,27 +1108,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   offset: const Offset(-10, 0),
                   itemBuilder:
                       (BuildContext context) => [
-                        // ĐỔI "Đọc bài viết" THÀNH "Chia sẻ"
                         PopupMenuItem<String>(
                           value: 'share',
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.ios_share,
-                                size: 18,
-                                color:
-                                    isDarkMode ? Colors.white : Colors.black87,
-                              ),
+                              Icon(Icons.share, size: 18),
                               const SizedBox(width: 8),
-                              Text(
-                                'Chia sẻ',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
+                              Text('Chia sẻ'),
                             ],
                           ),
                         ),
@@ -1413,21 +1122,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           value: 'analysis',
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.bolt,
-                                size: 18,
-                                color: Colors.orange,
-                              ),
+                              Icon(Icons.analytics, size: 18),
                               const SizedBox(width: 8),
-                              Text(
-                                'Tóm tắt',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
+                              Text('Phân tích'),
                             ],
                           ),
                         ),
@@ -1437,21 +1134,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             children: [
                               Icon(
                                 isSaved
-                                    ? Icons.bookmark_remove
-                                    : Icons.bookmark_add,
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
                                 size: 18,
-                                color: AppColors.primaryColor,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                isSaved ? 'Bỏ lưu' : 'Lưu',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
+                              Text(isSaved ? 'Bỏ lưu' : 'Lưu'),
                             ],
                           ),
                         ),
@@ -1459,7 +1147,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   onSelected: (String value) {
                     switch (value) {
                       case 'share':
-                        _shareArticle(article); // Thêm function chia sẻ
+                        _shareArticle(article);
                         break;
                       case 'analysis':
                         _openNewsAnalysis(article);
@@ -1478,18 +1166,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Thêm method chia sẻ
   void _shareArticle(Result article) {
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
-  // Thêm helper method để format time nếu chưa có
   String _formatTime(DateTime? pubDate) {
     if (pubDate == null) return "Vừa xong";
-
     try {
       final Duration difference = DateTime.now().difference(pubDate);
-
       if (difference.inMinutes < 60) {
         return "${difference.inMinutes} phút trước";
       } else if (difference.inHours < 24) {
@@ -1504,7 +1188,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // Cập nhật phần search results cũng theo logic mới
   Widget _buildSearchResults() {
     if (_isSearching) {
       return const SizedBox(
@@ -1559,7 +1242,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search results header
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -1575,10 +1257,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${_searchResults.length} kết quả cho "$_searchQuery"',
+                      'Kết quả cho "$_searchQuery"',
                       style: TextStyle(
                         color: AppColors.primaryColor,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                     ),
@@ -1587,8 +1269,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Search results content - THAY ĐỔI LOGIC
             _isListView
                 ? _buildSearchResultsListView()
                 : _buildSearchResultsGridView(),
@@ -1598,7 +1278,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Đổi tên search results methods
   Widget _buildSearchResultsGridView() {
     return ListView.separated(
       shrinkWrap: true,
@@ -1643,104 +1322,5 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return _buildListRowItem(article, isSaved);
       },
     );
-  }
-
-  // Lấy icon cho category
-  IconData _getCategoryIcon(String? category) {
-    if (category == null) return Icons.category;
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    const icons = {
-      'business': Icons.business_center,
-      'crime': Icons.security,
-      'domestic': Icons.home,
-      'education': Icons.school,
-      'entertainment': Icons.movie,
-      'environment': Icons.eco,
-      'food': Icons.restaurant,
-      'health': Icons.local_hospital,
-      'lifestyle': Icons.style,
-      'politics': Icons.account_balance,
-      'science': Icons.science,
-      'sports': Icons.sports_soccer,
-      'technology': Icons.computer,
-      'top': Icons.star,
-      'tourism': Icons.flight,
-      'world': Icons.public,
-      'other': Icons.category,
-      // Vietnamese
-      'kinh doanh': Icons.business_center,
-      'tội phạm': Icons.security,
-      'trong nước': Icons.home,
-      'giáo dục': Icons.school,
-      'giải trí': Icons.movie,
-      'môi trường': Icons.eco,
-      'ẩm thực': Icons.restaurant,
-      'sức khỏe': Icons.local_hospital,
-      'đời sống': Icons.style,
-      'chính trị': Icons.account_balance,
-      'khoa học': Icons.science,
-      'thể thao': Icons.sports_soccer,
-      'công nghệ': Icons.computer,
-      'nổi bật': Icons.star,
-      'du lịch': Icons.flight,
-      'thế giới': Icons.public,
-      'khác': Icons.category,
-    };
-    if (icons.containsKey(clean)) return icons[clean]!;
-    for (var entry in icons.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return Icons.category;
-  }
-
-  // Lấy màu gradient cho category
-  List<Color> _getCategoryColors(String? category) {
-    if (category == null)
-      return [AppColors.primaryColor, AppColors.primaryColor.withOpacity(0.7)];
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    final map = {
-      'business': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
-      'crime': [Color(0xFFD32F2F), Color(0xFFEF5350)],
-      'domestic': [Color(0xFF1976D2), Color(0xFF2196F3)],
-      'education': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
-      'entertainment': [Color(0xFFE91E63), Color(0xFFF06292)],
-      'environment': [Color(0xFF388E3C), Color(0xFF66BB6A)],
-      'food': [Color(0xFFFF5722), Color(0xFFFF7043)],
-      'health': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
-      'lifestyle': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
-      'politics': [Color(0xFF5D4037), Color(0xFF8D6E63)],
-      'science': [Color(0xFF303F9F), Color(0xFF3F51B5)],
-      'sports': [Color(0xFFFF6F00), Color(0xFFFF9800)],
-      'technology': [Color(0xFF455A64), Color(0xFF607D8B)],
-      'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
-      'tourism': [Color(0xFF0097A7), Color(0xFF00BCD4)],
-      'world': [Color(0xFF512DA8), Color(0xFF673AB7)],
-      'other': [Color(0xFF616161), Color(0xFF757575)],
-      // Vietnamese
-      'kinh doanh': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
-      'tội phạm': [Color(0xFFD32F2F), Color(0xFFEF5350)],
-      'trong nước': [Color(0xFF1976D2), Color(0xFF2196F3)],
-      'giáo dục': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
-      'giải trí': [Color(0xFFE91E63), Color(0xFFF06292)],
-      'môi trường': [Color(0xFF388E3C), Color(0xFF66BB6A)],
-      'ẩm thực': [Color(0xFFFF5722), Color(0xFFFF7043)],
-      'sức khỏe': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
-      'đời sống': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
-      'chính trị': [Color(0xFF5D4037), Color(0xFF8D6E63)],
-      'khoa học': [Color(0xFF303F9F), Color(0xFF3F51B5)],
-      'thể thao': [Color(0xFFFF6F00), Color(0xFFFF9800)],
-      'công nghệ': [Color(0xFF455A64), Color(0xFF607D8B)],
-      'nổi bật': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
-      'du lịch': [Color(0xFF0097A7), Color(0xFF00BCD4)],
-      'thế giới': [Color(0xFF512DA8), Color(0xFF673AB7)],
-      'khác': [Color(0xFF616161), Color(0xFF757575)],
-    };
-    if (map.containsKey(clean)) return map[clean]!;
-    for (var entry in map.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return [AppColors.primaryColor, AppColors.primaryColor.withOpacity(0.7)];
   }
 }

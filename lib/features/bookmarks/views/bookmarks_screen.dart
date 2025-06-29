@@ -7,6 +7,8 @@ import 'package:genews/features/news/widgets/category_bar.dart';
 import 'package:genews/app/themes/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/services/category_mapping_service.dart';
+import 'package:genews/shared/widgets/paginated_list_view.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -24,30 +26,8 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? selectedCategory;
-  List<String> _availableCategories = [];
-  bool _isListView = true; // Toggle between list and grid view
+  bool _isListView = true;
   late AnimationController _animationController;
-
-  // Category colors map
-  static final Map<String, List<Color>> _categoryColors = {
-    'business': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
-    'crime': [Color(0xFFD32F2F), Color(0xFFEF5350)],
-    'domestic': [Color(0xFF1976D2), Color(0xFF2196F3)],
-    'education': [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
-    'entertainment': [Color(0xFFE91E63), Color(0xFFF06292)],
-    'environment': [Color(0xFF388E3C), Color(0xFF66BB6A)],
-    'food': [Color(0xFFFF5722), Color(0xFFFF7043)],
-    'health': [Color(0xFF00ACC1), Color(0xFF26C6DA)],
-    'lifestyle': [Color(0xFFAB47BC), Color(0xFFBA68C8)],
-    'politics': [Color(0xFF5D4037), Color(0xFF8D6E63)],
-    'science': [Color(0xFF303F9F), Color(0xFF3F51B5)],
-    'sports': [Color(0xFFFF6F00), Color(0xFFFF9800)],
-    'technology': [Color(0xFF455A64), Color(0xFF607D8B)],
-    'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
-    'tourism': [Color(0xFF0097A7), Color(0xFF00BCD4)],
-    'world': [Color(0xFF512DA8), Color(0xFF673AB7)],
-    'other': [Color(0xFF616161), Color(0xFF757575)],
-  };
 
   @override
   void initState() {
@@ -77,15 +57,12 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       // Extract unique categories from bookmarked articles
       final categorySet = <String>{};
       for (var article in bookmarks) {
-        if (article.category != null &&
-            article.category.toString().isNotEmpty) {
-          categorySet.add(article.category.toString());
-        }
+        final cat = CategoryMappingService.toVietnamese(article.category);
+        if (cat.isNotEmpty && cat != 'Khác') categorySet.add(cat);
       }
 
       setState(() {
         _bookmarkedArticles = bookmarks;
-        _availableCategories = categorySet.toList()..sort();
         _isLoading = false;
         selectedCategory = null;
       });
@@ -94,26 +71,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     } catch (e) {
       setState(() {
         _bookmarkedArticles = [];
-        _availableCategories = [];
         _isLoading = false;
       });
     }
   }
 
-  void _onCategorySelected(String category) {
-    setState(() {
-      if (selectedCategory == category) {
-        selectedCategory = null;
-      } else {
-        selectedCategory = category;
-      }
-    });
-  }
   void _removeBookmark(Result article) async {
     await _bookmarksService.removeArticle(article);
     _loadBookmarks();
-
-    // Show snackbar
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -122,7 +87,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
           action: SnackBarAction(
             label: 'Hoàn tác',
             onPressed: () async {
-              await _bookmarksService.saveArticle(article);
               _loadBookmarks();
             },
           ),
@@ -159,9 +123,8 @@ class _BookmarksScreenState extends State<BookmarksScreen>
         selectedCategory == null
             ? _bookmarkedArticles
             : _bookmarkedArticles.where((article) {
-              String articleCategory =
-                  (article.category ?? '').toString().toLowerCase();
-              return articleCategory.contains(selectedCategory!.toLowerCase());
+              final cat = CategoryMappingService.toVietnamese(article.category);
+              return cat == selectedCategory;
             }).toList();
 
     if (_searchQuery.isEmpty) {
@@ -175,96 +138,23 @@ class _BookmarksScreenState extends State<BookmarksScreen>
           article.description?.toLowerCase().contains(query) ?? false;
       final sourceMatch =
           article.sourceName?.toLowerCase().contains(query) ?? false;
-
-      return titleMatch || descMatch || sourceMatch;
+      final categoryMatch = CategoryMappingService.toVietnamese(
+        article.category,
+      ).toLowerCase().contains(query);
+      return titleMatch || descMatch || sourceMatch || categoryMatch;
     }).toList();
   }
 
+  // THÊM: Hàm lấy màu sắc cho category từ DiscoverScreen
   List<Color> _getCategoryColors(String category) {
-    String cleanCategory =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-
-    if (_categoryColors.containsKey(cleanCategory)) {
-      return _categoryColors[cleanCategory]!;
-    }
-
-    for (var entry in _categoryColors.entries) {
-      if (cleanCategory.contains(entry.key)) {
-        return entry.value;
-      }
-    }
-
-    return [
-      AppColors.primaryColor.withOpacity(0.8),
-      AppColors.primaryColor.withOpacity(0.6),
-    ];
+    final vietnameseCategory = CategoryMappingService.toVietnamese(category);
+    return CategoryMappingService.getCategoryColors(vietnameseCategory);
   }
 
-  // Thêm method để dịch category sang tiếng Việt
-  String _translateCategory(dynamic category) {
-    if (category == null) return "";
-    if (category is List && category.isNotEmpty) {
-      for (var cat in category) {
-        if (_isVietnamese(cat.toString())) return cat.toString();
-      }
-      return _categoryMapToVietnamese(category.first.toString());
-    }
-    if (category is String) {
-      if (_isVietnamese(category)) return category;
-      return _categoryMapToVietnamese(category);
-    }
-    return "";
-  }
-
-  String _categoryMapToVietnamese(String category) {
-    final Map<String, String> categoryTranslations = {
-      'business': 'Kinh doanh',
-      'education': 'Giáo dục',
-      'entertainment': 'Giải trí',
-      'environment': 'Môi trường',
-      'food': 'Ẩm thực',
-      'health': 'Sức khỏe',
-      'lifestyle': 'Đời sống',
-      'politics': 'Chính trị',
-      'science': 'Khoa học',
-      'sports': 'Thể thao',
-      'technology': 'Công nghệ',
-      'top': 'Nổi bật',
-      'tourism': 'Du lịch',
-      'world': 'Thế giới',
-      'other': 'Khác',
-    };
-    final clean =
-        category.replaceAll(RegExp(r'[^\w\s]'), '').trim().toLowerCase();
-    if (categoryTranslations.containsKey(clean))
-      return categoryTranslations[clean]!;
-    for (var entry in categoryTranslations.entries) {
-      if (clean.contains(entry.key)) return entry.value;
-    }
-    return category;
-  }
-
-  // Chuẩn hóa category: Ưu tiên tiếng Việt, nếu không có thì dịch từ tiếng Anh
-  String normalizeCategory(dynamic category) {
-    if (category == null) return 'Khác';
-    if (category is List && category.isNotEmpty) {
-      for (var cat in category) {
-        if (_isVietnamese(cat.toString())) return cat.toString();
-      }
-      return _translateCategory(category.first.toString());
-    }
-    if (category is String) {
-      if (_isVietnamese(category)) return category;
-      return _translateCategory(category);
-    }
-    return 'Khác';
-  }
-
-  bool _isVietnamese(String text) {
-    final vietnameseRegex = RegExp(
-      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
-    );
-    return vietnameseRegex.hasMatch(text);
+  // THÊM: Hàm lấy icon cho category từ DiscoverScreen
+  IconData _getCategoryIcon(String? category) {
+    final vietnameseCategory = CategoryMappingService.toVietnamese(category);
+    return CategoryMappingService.getCategoryIcon(vietnameseCategory);
   }
 
   // Thay thế method _buildSliverAppBar và search bar section
@@ -354,10 +244,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    // Thêm 'Tất cả' vào đầu danh sách category
     final Set<String> categories = {};
     for (var article in _bookmarkedArticles) {
-      final cat = normalizeCategory(article.category);
+      final cat = CategoryMappingService.toVietnamese(article.category);
       if (cat.isNotEmpty && cat != 'Khác') categories.add(cat);
     }
     final List<String> displayCategories = ['Tất cả', ...categories.toList()];
@@ -365,16 +254,10 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     return Scaffold(
       body: SafeArea(
         child: Container(
-          color:
-              isDarkMode
-                  ? Colors.grey[900]
-                  : Colors.white, // Thêm màu nền container chính
+          color: isDarkMode ? Colors.grey[900] : Colors.white,
           child: CustomScrollView(
             slivers: [
-              // App Bar
               _buildSliverAppBar(),
-
-              // Search Bar
               if (_isSearchActive)
                 SliverToBoxAdapter(
                   child: Container(
@@ -458,9 +341,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                     ),
                   ),
                 ),
-
-              // Category Bar
-              if (displayCategories.isNotEmpty)
+              if (displayCategories.length > 1) // Chỉ hiển thị nếu có category
                 SliverToBoxAdapter(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -472,21 +353,18 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                       availableCategories: displayCategories,
                       selectedCategory: selectedCategory ?? 'Tất cả',
                       onCategorySelected: (cat) {
-                        if (cat == 'Tất cả') {
-                          setState(() => selectedCategory = null);
-                        } else {
-                          setState(() => selectedCategory = cat);
-                        }
+                        setState(() {
+                          selectedCategory = cat == 'Tất cả' ? null : cat;
+                        });
                       },
+                      getCategoryIcon: (cat) =>
+                          cat == 'Tất cả' ? Icons.list : _getCategoryIcon(cat),
+                      getCategoryColors: (cat) => [Colors.blue, Colors.blue.withOpacity(0.7)],
                     ),
                   ),
                 ),
-
-              // Statistics Section
               if (!_isLoading && _bookmarkedArticles.isNotEmpty)
                 SliverToBoxAdapter(child: _buildStatisticsSection()),
-
-              // Content
               _isLoading
                   ? SliverToBoxAdapter(
                     child: Container(
@@ -503,13 +381,17 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
+  // Sửa lỗi: lấy đúng key tiếng Anh cho màu sắc thống kê
   Widget _buildStatisticsSection() {
     final filteredBookmarks = _getFilteredBookmarks();
     final categoryStats = <String, int>{};
 
     for (var article in _bookmarkedArticles) {
-      final category = article.category?.toString() ?? 'other';
-      categoryStats[category] = (categoryStats[category] ?? 0) + 1;
+      // Dùng toEnglish để lấy key tiếng Anh cho việc đếm thống kê
+      final categoryEn = CategoryMappingService.toEnglish(
+        article.category?.toString() ?? 'other',
+      );
+      categoryStats[categoryEn] = (categoryStats[categoryEn] ?? 0) + 1;
     }
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -518,19 +400,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       margin: const EdgeInsets.all(16.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.grey[850]
-                : Colors.white, // Chỉnh màu nền theo dark mode
+        color: isDarkMode ? Colors.grey[850] : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color:
                 isDarkMode
                     ? Colors.black.withOpacity(0.3)
-                    : Colors.grey.withOpacity(
-                      0.1,
-                    ), // Chỉnh shadow theo dark mode
+                    : Colors.grey.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -548,10 +425,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color:
-                      isDarkMode
-                          ? Colors.white
-                          : Colors.black87, // Chỉnh màu text theo dark mode
+                  color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
             ],
@@ -577,16 +451,23 @@ class _BookmarksScreenState extends State<BookmarksScreen>
               spacing: 8,
               runSpacing: 8,
               children:
-                  categoryStats.entries.take(3).map((entry) {
-                    final colors = _getCategoryColors(entry.key);
-                    final translatedCategory = _translateCategory(entry.key);
+                  categoryStats.entries.take(10).map((entry) {
+                    final colors = _getCategoryColors(
+                      entry.key,
+                    );
+                    final translatedCategory =
+                        CategoryMappingService.toVietnamese(entry.key);
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: colors),
+                        gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: colors
+                          ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -605,7 +486,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // Cập nhật _buildBookmarksContent để phù hợp với logic mới
+  // SỬA ĐỔI: Thay thế _buildBookmarksContent bằng PaginatedListView
   Widget _buildBookmarksContent() {
     final filteredBookmarks = _getFilteredBookmarks();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -678,108 +559,51 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       );
     }
 
-    // ĐẢO NGƯỢC LOGIC để giống HomeScreen
-    return _isListView
-        ? _buildBookmarksListView(filteredBookmarks) // Danh sách dạng dòng
-        : _buildBookmarksGridView(filteredBookmarks); // Lưới (NewsCard)
-  }
-
-  // CẬP NHẬT _buildListView thành _buildBookmarksGridView (sử dụng NewsCard)
-  Widget _buildBookmarksGridView(List<Result> articles) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
+    // SỬA LỖI: Chỉ hiển thị pagination nếu có tin tức
     return SliverToBoxAdapter(
-      child: Container(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: articles.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final article = articles[index];
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _animationController,
-                    curve: Interval(
-                      (index / articles.length) * 0.5,
-                      ((index + 1) / articles.length) * 0.5 + 0.5,
-                      curve: Curves.easeOutCubic,
-                    ),
-                  ),
-                ),
-                child: NewsCard(
-                  newsData: article,
-                  onViewAnalysis: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => NewsAnalysisScreen(newsData: article),
-                      ),
-                    );
+      child: filteredBookmarks.isNotEmpty
+          ? Container(
+              color: isDarkMode ? Colors.grey[900] : Colors.white,
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                height: 600,
+                child: PaginatedListView<Result>(
+                  items: filteredBookmarks,
+                  itemsPerPage: 5,
+                  emptyMessage: 'Không có tin tức nào được lưu',
+                  itemBuilder: (context, article, index) {
+                    return _isListView
+                        ? _buildListRowItem(article, true)
+                        : _buildGridItem(article, true);
                   },
-                  onSave: () => _removeBookmark(article),
-                  isSaved: true,
                 ),
-              );
-            },
-          ),
-        ),
+              ),
+            )
+          : const SizedBox.shrink(), // Không hiển thị gì nếu không có tin
+    );
+  }
+
+  // THÊM: _buildGridItem để dùng trong PaginatedListView
+  Widget _buildGridItem(Result article, bool isSaved) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: NewsCard(
+        newsData: article,
+        isSaved: isSaved,
+        onSave: () => _removeBookmark(article),
+        onViewAnalysis: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NewsAnalysisScreen(newsData: article),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // THÊM _buildBookmarksListView mới (dạng dòng ngang tương tự HomeScreen)
-  Widget _buildBookmarksListView(List<Result> articles) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return SliverToBoxAdapter(
-      child: Container(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: articles.length,
-            separatorBuilder:
-                (context, index) => Divider(
-                  color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-                  height: 1,
-                ),
-            itemBuilder: (context, index) {
-              final article = articles[index];
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _animationController,
-                    curve: Interval(
-                      (index / articles.length) * 0.5,
-                      ((index + 1) / articles.length) * 0.5 + 0.5,
-                      curve: Curves.easeOutCubic,
-                    ),
-                  ),
-                ),
-                child: _buildListRowItem(article, true), // isSaved = true
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  // THÊM method _buildListRowItem tương tự HomeScreen
+  // SỬA LỖI: Thêm hàm _buildListRowItem bị thiếu
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -808,28 +632,24 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorWidget:
-                    (context, error, stackTrace) => Container(
-                      width: 80,
-                      height: 80,
-                      color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        size: 30,
-                      ),
-                    ),
+                errorWidget: (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    size: 30,
+                  ),
+                ),
               ),
             ),
-
             const SizedBox(width: 12),
-
             // Nội dung chính
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Text(
                     article.title ?? "Không có tiêu đề",
                     style: TextStyle(
@@ -841,10 +661,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Pub Date và Category
                   Row(
                     children: [
                       Icon(
@@ -858,10 +675,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           _formatTime(article.pubDate),
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -877,9 +691,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          _translateCategory(
-                            article.category?.toString() ?? '',
-                          ),
+                          CategoryMappingService.toVietnamese(article.category),
                           style: TextStyle(
                             fontSize: 10,
                             color: AppColors.primaryColor,
@@ -892,9 +704,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             // Icon menu 3 chấm
             SizedBox(
               height: 80,
@@ -908,76 +718,65 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                   color: isDarkMode ? Colors.grey[800] : Colors.white,
                   elevation: 8,
                   offset: const Offset(-10, 0),
-                  itemBuilder:
-                      (BuildContext context) => [
-                        PopupMenuItem<String>(
-                          value: 'share',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.ios_share,
-                                size: 18,
-                                color:
-                                    isDarkMode ? Colors.white : Colors.black87,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Chia sẻ',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
-                            ],
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem<String>(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.ios_share,
+                            size: 18,
+                            color: isDarkMode ? Colors.white : Colors.black87,
                           ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'analysis',
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.bolt,
-                                size: 18,
-                                color: Colors.orange,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tóm tắt',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 8),
+                          Text(
+                            'Chia sẻ',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
                           ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'remove',
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.bookmark_remove,
-                                size: 18,
-                                color: Colors.red,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Bỏ lưu',
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                ),
-                              ),
-                            ],
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'analysis',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bolt,
+                            size: 18,
+                            color: Colors.orange,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tóm tắt',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'remove',
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bookmark_remove,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Bỏ lưu',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   onSelected: (String value) {
                     switch (value) {
                       case 'share':
@@ -987,9 +786,8 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    NewsAnalysisScreen(newsData: article),
+                            builder: (context) =>
+                                NewsAnalysisScreen(newsData: article),
                           ),
                         );
                         break;
@@ -1007,18 +805,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // THÊM method chia sẻ
   void _shareArticle(Result article) {
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
-  // THÊM method format time
   String _formatTime(DateTime? pubDate) {
     if (pubDate == null) return "Vừa xong";
-
     try {
       final Duration difference = DateTime.now().difference(pubDate);
-
       if (difference.inMinutes < 60) {
         return "${difference.inMinutes} phút trước";
       } else if (difference.inHours < 24) {

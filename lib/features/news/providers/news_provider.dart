@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:genews/app/config/enums.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/features/news/data/repository/firestore_news_repository.dart';
-import 'package:genews/shared/services/category_mapping_service.dart';
 
 class NewsProvider extends ChangeNotifier {
   final FirestoreNewsRepositoryImpl _newsRepo = FirestoreNewsRepositoryImpl();
@@ -114,7 +113,7 @@ class NewsProvider extends ChangeNotifier {
 
     try {
       // Convert display category to query key (English or Vietnamese)
-      final queryCategory = CategoryMappingService.getCategoryKey(category);
+      final queryCategory = category;
       final articles = await _newsRepo.getArticlesByCategory(queryCategory);
 
       // Convert articles to NewsDataModel format

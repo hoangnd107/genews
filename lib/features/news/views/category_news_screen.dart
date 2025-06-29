@@ -57,24 +57,17 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     setState(() {
       _filteredArticles = [];
     });
-
     try {
-      // Import repository để gọi trực tiếp
       final repo = FirestoreNewsRepositoryImpl();
-
-      // Convert display category to query key (English or Vietnamese)
-      final queryCategory = CategoryMappingService.getCategoryKey(
-        widget.category,
-      );
+      // Luôn dùng key tiếng Anh chuẩn hóa từ CategoryMappingService
+      final queryCategory = CategoryMappingService.toEnglish(widget.category);
       final articles = await repo.getArticlesByCategory(queryCategory);
-
       setState(() {
         _filteredArticles = articles;
       });
-
       _loadSavedStates(articles);
     } catch (e) {
-      print("Error loading category news: $e");
+      debugPrint("Error loading category news: $e");
       setState(() {
         _filteredArticles = [];
       });
@@ -383,7 +376,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
 
   Widget _buildContent(NewsProvider newsState) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     if (newsState.newsViewState == ViewState.busy) {
       return SliverToBoxAdapter(
         child: Container(
@@ -393,7 +385,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
         ),
       );
     }
-
     if (_filteredArticles.isEmpty) {
       return SliverToBoxAdapter(
         child: Container(
@@ -406,7 +397,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                 Icon(
                   _searchQuery.isNotEmpty
                       ? Icons.search_off
-                      : Icons.article_outlined,
+                      : widget.categoryIcon,
                   size: 60,
                   color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                 ),
@@ -454,7 +445,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
         ),
       );
     }
-
     return SliverToBoxAdapter(
       child: Container(
         color: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -535,7 +525,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
           height: 600, // Fixed height for the paginated list
           child: PaginatedListView<Result>(
             items: _filteredArticles,
-            itemsPerPage: 15,
+            itemsPerPage: 5,
             emptyMessage:
                 _searchQuery.isNotEmpty
                     ? 'Không tìm thấy kết quả nào cho "$_searchQuery"'
@@ -569,13 +559,21 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   // THÊM METHOD MỚI cho list row item tương tự DiscoverScreen
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTap: () => _openNewsWebView(article),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
           color: isDarkMode ? Colors.grey[900] : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            if (!isDarkMode)
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,9 +598,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                     ),
               ),
             ),
-
             const SizedBox(width: 12),
-
             // Nội dung chính
             Expanded(
               child: Column(
@@ -658,9 +654,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             // Icon menu 3 chấm
             SizedBox(
               height: 80,

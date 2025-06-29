@@ -78,11 +78,11 @@ class GeNewsApp extends StatelessWidget {
           seedColor: Colors.white,
           brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: const Color(0xFF121212),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[900],
+          backgroundColor: Colors.transparent,
+          elevation: 0,
           foregroundColor: Colors.white,
-          elevation: 1.0,
-          scrolledUnderElevation: 2.0,
         ),
         textTheme: _buildTextTheme(
           ThemeData.dark().textTheme,
@@ -122,7 +122,16 @@ class GeNewsApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: MainScreen(),
+      home: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E1E1E), Color(0xFF121212)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const MainScreen(),
+      ),
     );
   }
 
