@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:genews/app/config/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:genews/features/main/providers/main_screen_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => NewsProvider()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => FontSizeProvider()),
+        ChangeNotifierProvider(create: (context) => MainScreenProvider()),
       ],
       child: const GeNewsApp(),
     ),

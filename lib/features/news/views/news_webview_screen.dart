@@ -5,6 +5,7 @@ import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;
@@ -361,6 +362,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      bottomNavigationBar: CustomBottomNavBar(),
       appBar: AppBar(
         elevation: 1,
         shadowColor:

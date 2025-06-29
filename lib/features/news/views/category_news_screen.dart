@@ -13,6 +13,7 @@ import 'package:genews/features/analysis/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
 
 class CategoryNewsScreen extends StatefulWidget {
   final String category;
@@ -93,9 +94,11 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     final articleId = article.articleId ?? article.link ?? '';
     final isSaved = await _bookmarksService.toggleSave(article);
 
-    setState(() {
-      _savedStates[articleId] = isSaved;
-    });
+    if (mounted) {
+      setState(() {
+        _savedStates[articleId] = isSaved;
+      });
+    }
   }
 
   void _performSearch(String query) {
@@ -175,6 +178,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      bottomNavigationBar: CustomBottomNavBar(selectedIndex: 1),
       body: SafeArea(
         child: Container(
           color: isDarkMode ? Colors.grey[900] : Colors.white,

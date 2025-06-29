@@ -9,6 +9,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 import 'package:genews/shared/services/category_mapping_service.dart';
 import 'package:genews/shared/widgets/paginated_list_view.dart';
+import 'package:genews/features/main/providers/main_screen_provider.dart';
+import 'package:provider/provider.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -28,6 +30,21 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   String? selectedCategory;
   bool _isListView = true;
   late AnimationController _animationController;
+  int? _previousTabIndex;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lắng nghe thay đổi tab để tải lại bookmark khi màn hình này được kích hoạt
+    final mainScreenProvider = Provider.of<MainScreenProvider>(context);
+    final currentIndex = mainScreenProvider.currentIndex;
+
+    // Index của BookmarksScreen là 2
+    if (currentIndex == 2 && _previousTabIndex != 2) {
+      _loadBookmarks();
+    }
+    _previousTabIndex = currentIndex;
+  }
 
   @override
   void initState() {
@@ -64,7 +81,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       setState(() {
         _bookmarkedArticles = bookmarks;
         _isLoading = false;
-        selectedCategory = null;
+        if (mounted) {
+          selectedCategory = null;
+        }
       });
 
       _animationController.forward();
@@ -77,16 +96,31 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   }
 
   void _removeBookmark(Result article) async {
-    await _bookmarksService.removeArticle(article);
-    _loadBookmarks();
+    // Lưu lại tin vừa xóa để có thể hoàn tác
+    final removedArticle = article;
+    // Xóa tin khỏi SharedPreferences
+    await _bookmarksService.removeArticle(removedArticle);
+
+    // Cập nhật UI ngay lập tức
+    setState(() {
+      _bookmarkedArticles.removeWhere(
+        (a) =>
+            a.articleId == removedArticle.articleId ||
+            a.link == removedArticle.link,
+      );
+    });
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã xóa khỏi danh sách lưu'),
-          duration: Duration(seconds: 2),
+          content: const Text('Đã xóa khỏi danh sách lưu'),
+          duration: const Duration(seconds: 2),
           action: SnackBarAction(
             label: 'Hoàn tác',
             onPressed: () async {
+              // Lưu lại tin đã xóa
+              await _bookmarksService.saveArticle(removedArticle);
+              // Tải lại danh sách để cập nhật UI
               _loadBookmarks();
             },
           ),
@@ -253,128 +287,139 @@ class _BookmarksScreenState extends State<BookmarksScreen>
 
     return Scaffold(
       body: SafeArea(
-        child: Container(
-          color: isDarkMode ? Colors.grey[900] : Colors.white,
-          child: CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(),
-              if (_isSearchActive)
-                SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    color:
-                        isDarkMode
-                            ? Colors.grey[900]
-                            : Colors.white, // Màu nền search container
+        child: RefreshIndicator(
+          onRefresh: _loadBookmarks,
+          child: Container(
+            color: isDarkMode ? Colors.grey[900] : Colors.white,
+            child: CustomScrollView(
+              slivers: [
+                _buildSliverAppBar(),
+                if (_isSearchActive)
+                  SliverToBoxAdapter(
                     child: Container(
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color:
-                            isDarkMode
-                                ? Colors.grey[800]
-                                : Colors.grey[100], // Màu nền search field
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
+                      padding: const EdgeInsets.all(16.0),
+                      color:
+                          isDarkMode
+                              ? Colors.grey[900]
+                              : Colors.white, // Màu nền search container
+                      child: Container(
+                        height: 45,
+                        decoration: BoxDecoration(
                           color:
                               isDarkMode
-                                  ? Colors.grey[600]!
-                                  : Colors.grey[300]!,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
+                                  ? Colors.grey[800]
+                                  : Colors.grey[100], // Màu nền search field
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(
                             color:
                                 isDarkMode
-                                    ? Colors.black.withOpacity(0.3)
-                                    : Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!,
                           ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        autofocus: true,
-                        style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  isDarkMode
+                                      ? Colors.black.withOpacity(0.3)
+                                      : Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        textAlignVertical:
-                            TextAlignVertical.center, // Fix text alignment
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm trong tin đã lưu...',
-                          hintStyle: TextStyle(
-                            color:
-                                isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 0, // Fix vertical padding
+                          textAlignVertical:
+                              TextAlignVertical.center, // Fix text alignment
+                          decoration: InputDecoration(
+                            hintText: 'Tìm kiếm trong tin đã lưu...',
+                            hintStyle: TextStyle(
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 0, // Fix vertical padding
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                              size: 20,
+                            ),
+                            suffixIcon:
+                                _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        size: 20,
+                                        color:
+                                            isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600],
+                                      ),
+                                      onPressed: _clearSearch,
+                                    )
+                                    : null,
+                            isDense: true, // Reduce default padding
                           ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color:
-                                isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                            size: 20,
-                          ),
-                          suffixIcon:
-                              _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                    icon: Icon(
-                                      Icons.clear,
-                                      size: 20,
-                                      color:
-                                          isDarkMode
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
-                                    ),
-                                    onPressed: _clearSearch,
-                                  )
-                                  : null,
-                          isDense: true, // Reduce default padding
+                          onChanged: _onSearchChanged,
                         ),
-                        onChanged: _onSearchChanged,
                       ),
                     ),
                   ),
-                ),
-              if (displayCategories.length > 1) // Chỉ hiển thị nếu có category
-                SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    color:
-                        isDarkMode
-                            ? Colors.grey[900]
-                            : Colors.white, // Màu nền category bar
-                    child: CategoryBar(
-                      availableCategories: displayCategories,
-                      selectedCategory: selectedCategory ?? 'Tất cả',
-                      onCategorySelected: (cat) {
-                        setState(() {
-                          selectedCategory = cat == 'Tất cả' ? null : cat;
-                        });
-                      },
-                      getCategoryIcon: (cat) =>
-                          cat == 'Tất cả' ? Icons.list : _getCategoryIcon(cat),
-                      getCategoryColors: (cat) => [Colors.blue, Colors.blue.withOpacity(0.7)],
-                    ),
-                  ),
-                ),
-              if (!_isLoading && _bookmarkedArticles.isNotEmpty)
-                SliverToBoxAdapter(child: _buildStatisticsSection()),
-              _isLoading
-                  ? SliverToBoxAdapter(
+                if (displayCategories.length >
+                    1) // Chỉ hiển thị nếu có category
+                  SliverToBoxAdapter(
                     child: Container(
-                      height: 300,
-                      color: isDarkMode ? Colors.grey[900] : Colors.white,
-                      child: const Center(child: CircularProgressIndicator()),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      color:
+                          isDarkMode
+                              ? Colors.grey[900]
+                              : Colors.white, // Màu nền category bar
+                      child: CategoryBar(
+                        availableCategories: displayCategories,
+                        selectedCategory: selectedCategory ?? 'Tất cả',
+                        onCategorySelected: (cat) {
+                          setState(() {
+                            selectedCategory = cat == 'Tất cả' ? null : cat;
+                          });
+                        },
+                        getCategoryIcon:
+                            (cat) =>
+                                cat == 'Tất cả'
+                                    ? Icons.list
+                                    : _getCategoryIcon(cat),
+                        getCategoryColors:
+                            (cat) => [
+                              Colors.blue,
+                              Colors.blue.withOpacity(0.7),
+                            ],
+                      ),
                     ),
-                  )
-                  : _buildBookmarksContent(),
-            ],
+                  ),
+                if (!_isLoading && _bookmarkedArticles.isNotEmpty)
+                  SliverToBoxAdapter(child: _buildStatisticsSection()),
+                _isLoading
+                    ? SliverToBoxAdapter(
+                      child: Container(
+                        height: 300,
+                        color: isDarkMode ? Colors.grey[900] : Colors.white,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                    )
+                    : _buildBookmarksContent(),
+              ],
+            ),
           ),
         ),
       ),
@@ -452,9 +497,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
               runSpacing: 8,
               children:
                   categoryStats.entries.take(10).map((entry) {
-                    final colors = _getCategoryColors(
-                      entry.key,
-                    );
+                    final colors = _getCategoryColors(entry.key);
                     final translatedCategory =
                         CategoryMappingService.toVietnamese(entry.key);
                     return Container(
@@ -464,10 +507,10 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: colors
-                          ),
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: colors,
+                        ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -539,7 +582,11 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                     selectedCategory == null) ...[
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed:
+                        () => Provider.of<MainScreenProvider>(
+                          context,
+                          listen: false,
+                        ).setCurrentIndex(1),
                     icon: const Icon(Icons.explore),
                     label: const Text("Khám phá tin tức"),
                     style: ElevatedButton.styleFrom(
@@ -561,25 +608,26 @@ class _BookmarksScreenState extends State<BookmarksScreen>
 
     // SỬA LỖI: Chỉ hiển thị pagination nếu có tin tức
     return SliverToBoxAdapter(
-      child: filteredBookmarks.isNotEmpty
-          ? Container(
-              color: isDarkMode ? Colors.grey[900] : Colors.white,
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                height: 600,
-                child: PaginatedListView<Result>(
-                  items: filteredBookmarks,
-                  itemsPerPage: 5,
-                  emptyMessage: 'Không có tin tức nào được lưu',
-                  itemBuilder: (context, article, index) {
-                    return _isListView
-                        ? _buildListRowItem(article, true)
-                        : _buildGridItem(article, true);
-                  },
+      child:
+          filteredBookmarks.isNotEmpty
+              ? Container(
+                color: isDarkMode ? Colors.grey[900] : Colors.white,
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  height: 600,
+                  child: PaginatedListView<Result>(
+                    items: filteredBookmarks,
+                    itemsPerPage: 5,
+                    emptyMessage: 'Không có tin tức nào được lưu',
+                    itemBuilder: (context, article, index) {
+                      return _isListView
+                          ? _buildListRowItem(article, true)
+                          : _buildGridItem(article, true);
+                    },
+                  ),
                 ),
-              ),
-            )
-          : const SizedBox.shrink(), // Không hiển thị gì nếu không có tin
+              )
+              : const SizedBox.shrink(), // Không hiển thị gì nếu không có tin
     );
   }
 
@@ -632,16 +680,17 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorWidget: (context, error, stackTrace) => Container(
-                  width: 80,
-                  height: 80,
-                  color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    size: 30,
-                  ),
-                ),
+                errorWidget:
+                    (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        size: 30,
+                      ),
+                    ),
               ),
             ),
             const SizedBox(width: 12),
@@ -675,7 +724,10 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           _formatTime(article.pubDate),
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color:
+                                isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -718,65 +770,76 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                   color: isDarkMode ? Colors.grey[800] : Colors.white,
                   elevation: 8,
                   offset: const Offset(-10, 0),
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem<String>(
-                      value: 'share',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.ios_share,
-                            size: 18,
-                            color: isDarkMode ? Colors.white : Colors.black87,
+                  itemBuilder:
+                      (BuildContext context) => [
+                        PopupMenuItem<String>(
+                          value: 'share',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.ios_share,
+                                size: 18,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Chia sẻ',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Chia sẻ',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'analysis',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bolt,
+                                size: 18,
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tóm tắt',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'analysis',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bolt,
-                            size: 18,
-                            color: Colors.orange,
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'remove',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bookmark_remove,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Bỏ lưu',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Tóm tắt',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'remove',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bookmark_remove,
-                            size: 18,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Bỏ lưu',
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
                   onSelected: (String value) {
                     switch (value) {
                       case 'share':
@@ -786,8 +849,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                NewsAnalysisScreen(newsData: article),
+                            builder:
+                                (context) =>
+                                    NewsAnalysisScreen(newsData: article),
                           ),
                         );
                         break;

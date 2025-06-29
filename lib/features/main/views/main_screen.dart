@@ -3,6 +3,8 @@ import 'package:genews/features/bookmarks/views/bookmarks_screen.dart';
 import 'package:genews/features/news/views/home_screen.dart';
 import 'package:genews/features/news/views/discover_screen.dart';
 import 'package:genews/features/settings/views/settings_screen.dart';
+import 'package:genews/features/main/providers/main_screen_provider.dart';
+import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,8 +14,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
   final List<Widget> _screens = [
     const HomeScreen(),
     const DiscoverScreen(),
@@ -21,21 +21,17 @@ class _MainScreenState extends State<MainScreen> {
     const SettingsScreen(),
   ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final mainScreenProvider = Provider.of<MainScreenProvider>(context);
+    final selectedIndex = mainScreenProvider.currentIndex;
 
     final navBarColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(index: selectedIndex, children: _screens),
       // SỬA ĐỔI: Sử dụng Row thay vì BottomNavigationBar
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(12.0),
@@ -55,10 +51,14 @@ class _MainScreenState extends State<MainScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround, // Căn giữa các item
           children: [
-            _buildNavItem(Icons.home_outlined, Icons.home, 'Trang chủ', 0),
-            _buildNavItem(Icons.explore_outlined, Icons.explore, 'Khám phá', 1),
-            _buildNavItem(Icons.bookmark_border, Icons.bookmark, 'Đã lưu', 2),
-            _buildNavItem(Icons.menu_outlined, Icons.menu, 'Cài đặt', 3),
+            _buildNavItem(
+                Icons.home_outlined, Icons.home, 'Trang chủ', 0, selectedIndex),
+            _buildNavItem(Icons.explore_outlined, Icons.explore, 'Khám phá', 1,
+                selectedIndex),
+            _buildNavItem(Icons.bookmark_border, Icons.bookmark, 'Đã lưu', 2,
+                selectedIndex),
+            _buildNavItem(
+                Icons.menu_outlined, Icons.menu, 'Cài đặt', 3, selectedIndex),
           ],
         ),
       ),
@@ -71,8 +71,9 @@ class _MainScreenState extends State<MainScreen> {
     IconData activeIcon,
     String label,
     int index,
+    int selectedIndex,
   ) {
-    final isSelected = _selectedIndex == index;
+    final isSelected = selectedIndex == index;
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final selectedColor = isDarkMode ? Colors.white : Colors.black87;
@@ -80,7 +81,9 @@ class _MainScreenState extends State<MainScreen> {
 
     return Expanded(
       child: InkWell(
-        onTap: () => _onItemTapped(index),
+        onTap: () =>
+            Provider.of<MainScreenProvider>(context, listen: false)
+                .setCurrentIndex(index),
         borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
