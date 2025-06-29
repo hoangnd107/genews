@@ -185,7 +185,7 @@ class _DebugScreenState extends State<DebugScreen> {
                       '1. Run "Quick Migration Test" first\n'
                       '2. If it fails, check Firestore connection\n'
                       '3. Ensure Python scripts have populated data\n'
-                      '4. Use "Detailed Test" for comprehensive analysis\n'
+                      '4. Use "Detailed Test" for comprehensive summary\n'
                       '5. Check console logs for detailed information',
                       style: TextStyle(color: Colors.blue),
                     ),

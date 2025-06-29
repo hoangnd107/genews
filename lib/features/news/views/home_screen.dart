@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:genews/app/config/enums.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
-import 'package:genews/features/analysis/views/news_summary_screen.dart';
+import 'package:genews/features/summary/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/app/themes/colors.dart';
@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewsAnalysisScreen(newsData: article),
+        builder: (context) => NewsSummaryScreen(newsData: article),
       ),
     );
   }
@@ -1141,7 +1141,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                         PopupMenuItem<String>(
-                          value: 'analysis',
+                          value: 'summary',
                           child: Row(
                             children: [
                               const Icon(
@@ -1195,7 +1195,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       case 'share':
                         _shareArticle(article);
                         break;
-                      case 'analysis':
+                      case 'summary':
                         _openNewsAnalysis(article);
                         break;
                       case 'bookmark':

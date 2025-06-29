@@ -9,7 +9,7 @@ import 'package:genews/shared/services/category_mapping_service.dart';
 import 'package:genews/features/news/data/repository/firestore_news_repository.dart';
 import 'package:genews/shared/widgets/paginated_list_view.dart';
 import 'package:genews/features/news/widgets/news_card.dart';
-import 'package:genews/features/analysis/views/news_summary_screen.dart';
+import 'package:genews/features/summary/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
@@ -786,7 +786,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewsAnalysisScreen(newsData: article),
+        builder: (context) => NewsSummaryScreen(newsData: article),
       ),
     );
   }

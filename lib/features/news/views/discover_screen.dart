@@ -5,7 +5,7 @@ import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
 import 'package:genews/features/news/widgets/news_card.dart';
-import 'package:genews/features/analysis/views/news_summary_screen.dart';
+import 'package:genews/features/summary/views/news_summary_screen.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart' as webview;
 import 'package:genews/features/news/views/category_news_screen.dart';
 import 'package:genews/app/themes/colors.dart';
@@ -176,7 +176,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewsAnalysisScreen(newsData: article),
+        builder: (context) => NewsSummaryScreen(newsData: article),
       ),
     );
   }
@@ -846,7 +846,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewsAnalysisScreen(newsData: article),
+        builder: (context) => NewsSummaryScreen(newsData: article),
       ),
     );
   }
@@ -999,7 +999,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                         ),
                         PopupMenuItem<String>(
-                          value: 'analysis',
+                          value: 'summary',
                           child: Row(
                             children: [
                               const Icon(
@@ -1053,7 +1053,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       case 'share':
                         _shareArticle(article);
                         break;
-                      case 'analysis':
+                      case 'summary':
                         _openNewsAnalysis(article);
                         break;
                       case 'bookmark':
