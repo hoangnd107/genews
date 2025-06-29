@@ -64,21 +64,43 @@ class SeleniumFetcher(BaseFetcher):
             logging.info("Selenium WebDriver is already initialized.")
             return
 
-        logging.info("Initializing Selenium WebDriver with optimized options...")
+        logging.info(
+            "Initializing Selenium WebDriver with optimized options for Cloud Run..."
+        )
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-software-rasterizer")
-        chrome_options.add_argument("--log-level=3")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
+        chrome_options.add_argument("--disable-background-networking")
+        chrome_options.add_argument("--disable-background-timer-throttling")
+        chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+        chrome_options.add_argument("--disable-breakpad")
+        chrome_options.add_argument("--disable-client-side-phishing-detection")
+        chrome_options.add_argument("--disable-component-update")
+        chrome_options.add_argument("--disable-default-apps")
+        chrome_options.add_argument("--disable-features=site-per-process,TranslateUI")
+        chrome_options.add_argument("--disable-hang-monitor")
+        chrome_options.add_argument("--disable-ipc-flooding-protection")
+        chrome_options.add_argument("--disable-popup-blocking")
+        chrome_options.add_argument("--disable-prompt-on-repost")
+        chrome_options.add_argument("--disable-renderer-backgrounding")
+        chrome_options.add_argument("--disable-sync")
+        chrome_options.add_argument("--metrics-recording-only")
+        chrome_options.add_argument("--no-first-run")
+        chrome_options.add_argument("--safebrowsing-disable-auto-update")
+        chrome_options.add_argument("--enable-automation")
+        chrome_options.add_argument("--password-store=basic")
+        chrome_options.add_argument("--use-mock-keychain")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--remote-debugging-port=9222")
         chrome_options.add_argument(
             "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
         )
+        chrome_options.add_argument("--log-level=3")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         try:
             chrome_driver_path = os.getenv("CHROME_DRIVER_PATH")
@@ -134,10 +156,14 @@ class SeleniumFetcher(BaseFetcher):
             "creator": self.SOURCE_CONFIG["creator"],
             "video_url": None,
             "description": (
-                description.strip() if description else title.strip() or "No description available."
+                description.strip()
+                if description
+                else title.strip() or "No description available."
             ),
             "content": (
-                description.strip() if description else title.strip() or "No description available."
+                description.strip()
+                if description
+                else title.strip() or "No description available."
             ),
             "pubDate": now,
             "image_url": self._extract_full_url(image_url) if image_url else None,
@@ -326,7 +352,7 @@ class SeleniumFetcher(BaseFetcher):
     def scrape_content_for_existing_articles(self, limit: int = 10):
         """Finds articles missing full content and scrapes it."""
         logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
-        
+
         try:
             self._init_selenium()
             docs = (

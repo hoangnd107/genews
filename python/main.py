@@ -78,11 +78,11 @@ def run_scheduler():
     """Run the scheduler continuously in a background thread."""
     setup_logging()
 
-    # Schedule to run every hour
-    schedule.every().hour.do(run_all_fetchers_sequential)
+    # Schedule to run every 6 hours
+    schedule.every(6).hours.do(run_all_fetchers_sequential)
 
     logging.info("🕐 Starting news fetcher scheduler...")
-    logging.info("📅 Scheduled to run every 1 hour.")
+    logging.info("📅 Scheduled to run every 6 hours.")
 
     # Run once immediately at startup
     run_all_fetchers_sequential()
