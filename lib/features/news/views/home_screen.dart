@@ -1080,7 +1080,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          CategoryMappingService.toVietnamese(article.category),
+                          CategoryMappingService.toVietnamese(
+                            article.category?.toString() ?? '',
+                          ),
                           style: TextStyle(
                             fontSize: 10,
                             color: AppColors.primaryColor,
@@ -1112,9 +1114,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           value: 'share',
                           child: Row(
                             children: [
-                              Icon(Icons.share, size: 18),
+                              Icon(
+                                Icons.ios_share,
+                                size: 18,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
                               const SizedBox(width: 8),
-                              Text('Chia sẻ'),
+                              Text(
+                                'Chia sẻ',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1122,9 +1137,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           value: 'analysis',
                           child: Row(
                             children: [
-                              Icon(Icons.analytics, size: 18),
+                              const Icon(
+                                Icons.bolt,
+                                size: 18,
+                                color: Colors.orange,
+                              ),
                               const SizedBox(width: 8),
-                              Text('Phân tích'),
+                              Text(
+                                'Tóm tắt',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1134,12 +1161,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             children: [
                               Icon(
                                 isSaved
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
+                                    ? Icons.bookmark_remove
+                                    : Icons.bookmark_add,
                                 size: 18,
+                                color:
+                                  isSaved
+                                      ? Colors.red
+                                      : AppColors.primaryColor,
                               ),
                               const SizedBox(width: 8),
-                              Text(isSaved ? 'Bỏ lưu' : 'Lưu'),
+                              Text(
+                                isSaved ? 'Bỏ lưu' : 'Lưu',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genews/app/config/enums.dart';
+import 'package:genews/app/themes/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:genews/features/news/providers/news_provider.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
@@ -732,15 +733,13 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
                             children: [
                               Icon(
                                 isSaved
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                size: 20,
+                                    ? Icons.bookmark_remove
+                                    : Icons.bookmark_add,
+                                size: 18,
                                 color:
                                     isSaved
-                                        ? Colors.blue
-                                        : (isDarkMode
-                                            ? Colors.white
-                                            : Colors.black87),
+                                        ? Colors.red
+                                        : AppColors.primaryColor,
                               ),
                               const SizedBox(width: 12),
                               Text(

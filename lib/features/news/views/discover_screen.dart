@@ -1023,7 +1023,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                     ? Icons.bookmark_remove
                                     : Icons.bookmark_add,
                                 size: 18,
-                                color: Colors.red,
+                                color:
+                                  isSaved
+                                      ? Colors.red
+                                      : AppColors.primaryColor,
                               ),
                               const SizedBox(width: 8),
                               Text(

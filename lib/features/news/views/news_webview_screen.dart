@@ -38,23 +38,66 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
 
   // SỬA ĐỔI: Cập nhật danh sách domain chặn quảng cáo
   static const List<String> _adBlockList = [
-    'doubleclick.net', 'googleadservices.com', 'googlesyndication.com',
-    'google-analytics.com', 'googletagmanager.com', 'facebook.com/tr',
-    'facebook.net', 'amazon-adsystem.com', 'adsystem.com', 'ads.yahoo.com',
-    'bing.com/search', 'outbrain.com', 'taboola.com', 'addthis.com',
-    'sharethis.com', 'scorecardresearch.com', 'quantserve.com', 'hotjar.com',
-    'mouseflow.com', 'crazyegg.com', 'adnxs.com', 'pubmatic.com',
-    'rubiconproject.com', 'openx.net', 'advertising.com', 'ads.twitter.com',
-    'analytics.twitter.com', 'ads.linkedin.com', 'ads.pinterest.com',
-    'ads.tiktok.com', 'adform.net', 'adsrvr.org', 'amazon-advertising.com',
-    'criteo.com', 'turn.com', 'rlcdn.com', 'serving-sys.com', 'moatads.com',
-    'adroll.com', 'casalemedia.com', 'contextweb.com', 'exponential.com',
-    'indexww.com', 'sharethrough.com', 'sovrn.com', 'spotxchange.com',
-    'springserve.com', 'teads.tv', 'tidaltv.com', 'undertone.com',
-    'yieldmo.com', 'ads.google.com', 'www.googletagservices.com',
-    'pagead2.googlesyndication.com', 'tpc.googlesyndication.com',
-    'googleads.g.doubleclick.net', 'static.doubleclick.net',
-    'stats.g.doubleclick.net', 'cm.g.doubleclick.net', 'ad.doubleclick.net',
+    'doubleclick.net',
+    'googleadservices.com',
+    'googlesyndication.com',
+    'google-analytics.com',
+    'googletagmanager.com',
+    'facebook.com/tr',
+    'facebook.net',
+    'amazon-adsystem.com',
+    'adsystem.com',
+    'ads.yahoo.com',
+    'bing.com/search',
+    'outbrain.com',
+    'taboola.com',
+    'addthis.com',
+    'sharethis.com',
+    'scorecardresearch.com',
+    'quantserve.com',
+    'hotjar.com',
+    'mouseflow.com',
+    'crazyegg.com',
+    'adnxs.com',
+    'pubmatic.com',
+    'rubiconproject.com',
+    'openx.net',
+    'advertising.com',
+    'ads.twitter.com',
+    'analytics.twitter.com',
+    'ads.linkedin.com',
+    'ads.pinterest.com',
+    'ads.tiktok.com',
+    'adform.net',
+    'adsrvr.org',
+    'amazon-advertising.com',
+    'criteo.com',
+    'turn.com',
+    'rlcdn.com',
+    'serving-sys.com',
+    'moatads.com',
+    'adroll.com',
+    'casalemedia.com',
+    'contextweb.com',
+    'exponential.com',
+    'indexww.com',
+    'sharethrough.com',
+    'sovrn.com',
+    'spotxchange.com',
+    'springserve.com',
+    'teads.tv',
+    'tidaltv.com',
+    'undertone.com',
+    'yieldmo.com',
+    'ads.google.com',
+    'www.googletagservices.com',
+    'pagead2.googlesyndication.com',
+    'tpc.googlesyndication.com',
+    'googleads.g.doubleclick.net',
+    'static.doubleclick.net',
+    'stats.g.doubleclick.net',
+    'cm.g.doubleclick.net',
+    'ad.doubleclick.net',
   ];
 
   // SỬA ĐỔI: Cập nhật script chặn quảng cáo
@@ -116,42 +159,43 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
   }
 
   void _setupWebViewController() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              isLoading = true;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              isLoading = false;
-            });
-            // SỬA ĐỔI: Chỉ chạy script khi tính năng được bật
-            if (_isAdBlockingEnabled) {
-              _injectAdBlockingScript();
-            }
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint('Web Resource Error: ${error.description}');
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            // SỬA ĐỔI: Chỉ chặn URL khi tính năng được bật
-            if (_isAdBlockingEnabled && _isAdUrl(request.url)) {
-              if (mounted) {
+    _controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (String url) {
                 setState(() {
-                  _blockedAdsCount++;
+                  isLoading = true;
                 });
-              }
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+              },
+              onPageFinished: (String url) {
+                setState(() {
+                  isLoading = false;
+                });
+                // SỬA ĐỔI: Chỉ chạy script khi tính năng được bật
+                if (_isAdBlockingEnabled) {
+                  _injectAdBlockingScript();
+                }
+              },
+              onWebResourceError: (WebResourceError error) {
+                debugPrint('Web Resource Error: ${error.description}');
+              },
+              onNavigationRequest: (NavigationRequest request) {
+                // SỬA ĐỔI: Chỉ chặn URL khi tính năng được bật
+                if (_isAdBlockingEnabled && _isAdUrl(request.url)) {
+                  if (mounted) {
+                    setState(() {
+                      _blockedAdsCount++;
+                    });
+                  }
+                  return NavigationDecision.prevent;
+                }
+                return NavigationDecision.navigate;
+              },
+            ),
+          )
+          ..loadRequest(Uri.parse(widget.url));
   }
 
   // SỬA ĐỔI: Sử dụng danh sách domain mới
@@ -319,7 +363,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
-        shadowColor: isDarkMode ? Colors.black.withOpacity(0.5) : Colors.grey.withOpacity(0.2),
+        shadowColor:
+            isDarkMode
+                ? Colors.black.withOpacity(0.5)
+                : Colors.grey.withOpacity(0.2),
         backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         foregroundColor: isDarkMode ? Colors.white : Colors.black87,
         // SỬA ĐỔI: Title cố định
@@ -344,7 +391,11 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   _toggleSaved();
                   break;
                 case 'share':
-                  shareNewsLink(context: context, url: widget.url, title: widget.title);
+                  shareNewsLink(
+                    context: context,
+                    url: widget.url,
+                    title: widget.title,
+                  );
                   break;
                 case 'copy_link':
                   _copyLink();
@@ -357,84 +408,117 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   break;
               }
             },
-            itemBuilder: (context) => [
-              // Item bật/tắt chặn quảng cáo
-              PopupMenuItem(
-                value: 'toggle_adblock',
-                child: Row(
-                  children: [
-                    Icon(
-                      _isAdBlockingEnabled ? Icons.shield : Icons.shield_outlined,
-                      color: _isAdBlockingEnabled ? Colors.green : (isDarkMode ? Colors.white : Colors.black87),
-                      size: 20,
+            itemBuilder:
+                (context) => [
+                  // Item bật/tắt chặn quảng cáo
+                  PopupMenuItem(
+                    value: 'toggle_adblock',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isAdBlockingEnabled
+                              ? Icons.shield
+                              : Icons.shield_outlined,
+                          color:
+                              _isAdBlockingEnabled
+                                  ? Colors.green
+                                  : (isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _isAdBlockingEnabled
+                              ? 'Tắt chặn quảng cáo'
+                              : 'Bật chặn quảng cáo',
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(_isAdBlockingEnabled ? 'Tắt chặn quảng cáo' : 'Bật chặn quảng cáo'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              // Item lưu tin
-              PopupMenuItem(
-                value: 'bookmark',
-                child: Row(
-                  children: [
-                    Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved ? Colors.orange : (isDarkMode ? Colors.white : Colors.black87),
-                      size: 20,
+                  ),
+                  const PopupMenuDivider(),
+                  // Item lưu tin
+                  PopupMenuItem(
+                    value: 'bookmark',
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          color:
+                              isSaved
+                                  ? Colors.orange
+                                  : (isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(isSaved ? 'Bỏ lưu' : 'Lưu tin'),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(isSaved ? 'Bỏ lưu' : 'Lưu tin'),
-                  ],
-                ),
-              ),
-              // Item chia sẻ
-              PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
-                    const SizedBox(width: 12),
-                    const Text('Chia sẻ'),
-                  ],
-                ),
-              ),
-              // Item sao chép link
-              PopupMenuItem(
-                value: 'copy_link',
-                child: Row(
-                  children: [
-                    Icon(Icons.copy, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
-                    const SizedBox(width: 12),
-                    const Text('Sao chép liên kết'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              // Item cỡ chữ
-              PopupMenuItem(
-                value: 'font_size',
-                child: Row(
-                  children: [
-                    Icon(Icons.text_fields, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
-                    const SizedBox(width: 12),
-                    const Text('Cỡ chữ'),
-                  ],
-                ),
-              ),
-              // Item tải lại
-              PopupMenuItem(
-                value: 'reload',
-                child: Row(
-                  children: [
-                    Icon(Icons.refresh, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
-                    const SizedBox(width: 12),
-                    const Text('Tải lại trang'),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                  // Item chia sẻ
+                  PopupMenuItem(
+                    value: 'share',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.ios_share,
+                          size: 20,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Chia sẻ'),
+                      ],
+                    ),
+                  ),
+                  // Item sao chép link
+                  PopupMenuItem(
+                    value: 'copy_link',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.copy,
+                          size: 20,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Sao chép liên kết'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  // Item cỡ chữ
+                  PopupMenuItem(
+                    value: 'font_size',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.text_fields,
+                          size: 20,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Cỡ chữ'),
+                      ],
+                    ),
+                  ),
+                  // Item tải lại
+                  PopupMenuItem(
+                    value: 'reload',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.refresh,
+                          size: 20,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Tải lại trang'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
@@ -443,7 +527,9 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
           WebViewWidget(controller: _controller),
           if (isLoading)
             Container(
-              color: (isDarkMode ? Colors.black : Colors.white).withOpacity(0.8),
+              color: (isDarkMode ? Colors.black : Colors.white).withOpacity(
+                0.8,
+              ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -452,7 +538,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                     const SizedBox(height: 16),
                     const Text(
                       'Đang tải nội dung...',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     if (_isAdBlockingEnabled) ...[
                       const SizedBox(height: 8),
@@ -464,7 +553,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),
@@ -476,14 +565,15 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NewsAnalysisScreen(newsData: widget.newsData),
+              builder:
+                  (context) => NewsAnalysisScreen(newsData: widget.newsData),
             ),
           );
         },
-        tooltip: 'Tóm tắt AI',
+        tooltip: 'Tóm tắt',
         icon: const Icon(Icons.bolt, color: Colors.white),
         label: const Text(
-          'Tóm tắt AI',
+          'Tóm tắt',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.orange,

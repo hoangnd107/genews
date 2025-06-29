@@ -26,8 +26,8 @@ class BookmarksService {
       await prefs.setStringList(_bookmarksKey, savedArticlesJson);
       return false; // Now it's not saved
     } else {
-      // Save it
-      savedArticlesJson.add(articleJson);
+      // Save it at the top
+      savedArticlesJson.insert(0, articleJson);
       await prefs.setStringList(_bookmarksKey, savedArticlesJson);
       return true; // Now it's saved
     }
@@ -52,7 +52,7 @@ class BookmarksService {
       return false; // Already saved
     }
 
-    savedArticlesJson.add(articleJson);
+    savedArticlesJson.insert(0, articleJson);
     await prefs.setStringList(_bookmarksKey, savedArticlesJson);
     return true;
   }
