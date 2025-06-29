@@ -33,7 +33,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
   bool isSaved = false;
   // ignore: unused_field
   int _blockedAdsCount = 0;
-  bool _isAdBlockingEnabled = true;
+  bool _isAdBlockingEnabled = false;
 
   // SỬA ĐỔI: Ghi đè wantKeepAlive để giữ state
   @override
@@ -362,12 +362,11 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     // SỬA ĐỔI: Gọi super.build(context) để giữ state
     super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final selectedIndex = Provider.of<MainScreenProvider>(context).getCurrentIndex();
+    final selectedIndex =
+        Provider.of<MainScreenProvider>(context).getCurrentIndex();
 
     return Scaffold(
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedIndex: selectedIndex,
-      ),
+      bottomNavigationBar: CustomBottomNavBar(selectedIndex: selectedIndex),
       appBar: AppBar(
         elevation: 1,
         shadowColor:
@@ -567,23 +566,60 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => NewsAnalysisScreen(newsData: widget.newsData),
+      floatingActionButton: Container(
+        margin: const EdgeInsets.only(bottom: 12, right: 8),
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => NewsAnalysisScreen(newsData: widget.newsData),
+              ),
+            );
+          },
+          tooltip: 'Tóm tắt',
+          icon: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Colors.orange, Colors.deepOrangeAccent, Colors.amber],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          );
-        },
-        tooltip: 'Tóm tắt',
-        icon: const Icon(Icons.bolt, color: Colors.white),
-        label: const Text(
-          'Tóm tắt',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            padding: const EdgeInsets.all(8),
+            child: const Icon(Icons.bolt, color: Colors.white, size: 28),
+          ),
+          label: Text(
+            'Tóm tắt',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.orange.shade900,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              letterSpacing: 0.2,
+              shadows: [
+                Shadow(
+                  color: Colors.black26,
+                  offset: Offset(0, 2),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
+          backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
-        backgroundColor: Colors.orange,
       ),
     );
   }

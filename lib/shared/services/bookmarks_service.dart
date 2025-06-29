@@ -8,28 +8,48 @@ class BookmarksService {
   Future<List<Result>> getSavedArticles() async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
-
+    if (savedArticlesJson.isEmpty) return [];
     return savedArticlesJson
-        .map((json) => Result.fromJson(jsonDecode(json)))
+        .where((json) => json.isNotEmpty)
+        .map((json) {
+          try {
+            return Result.fromJson(jsonDecode(json));
+          } catch (e) {
+            // Skip invalid/corrupted entries
+            return null;
+          }
+        })
+        .whereType<Result>()
         .toList();
   }
 
   Future<bool> toggleSave(Result article) async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
-    final articleJson = jsonEncode(article.toJson());
-
-    // Check if article is already saved
-    if (savedArticlesJson.contains(articleJson)) {
-      // Remove it
-      savedArticlesJson.remove(articleJson);
-      await prefs.setStringList(_bookmarksKey, savedArticlesJson);
-      return false; // Now it's not saved
+    final articleId = article.articleId ?? article.link ?? '';
+    // Defensive: filter out corrupted/empty entries
+    final filteredArticles =
+        savedArticlesJson.where((json) {
+          try {
+            if (json.isEmpty) return false;
+            final a = Result.fromJson(jsonDecode(json));
+            return (a.articleId ?? a.link ?? '') != articleId ||
+                articleId.isEmpty;
+          } catch (e) {
+            // Skip corrupted entry
+            return false;
+          }
+        }).toList();
+    final alreadySaved = filteredArticles.length != savedArticlesJson.length;
+    if (alreadySaved) {
+      // Was saved, now removed
+      await prefs.setStringList(_bookmarksKey, filteredArticles);
+      return false;
     } else {
-      // Save it at the top
-      savedArticlesJson.insert(0, articleJson);
-      await prefs.setStringList(_bookmarksKey, savedArticlesJson);
-      return true; // Now it's saved
+      // Not saved, now add
+      filteredArticles.insert(0, jsonEncode(article.toJson()));
+      await prefs.setStringList(_bookmarksKey, filteredArticles);
+      return true;
     }
   }
 
@@ -37,22 +57,35 @@ class BookmarksService {
   Future<bool> isArticleSaved(Result article) async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
-    final articleJson = jsonEncode(article.toJson());
-
-    return savedArticlesJson.contains(articleJson);
+    final articleId = article.articleId ?? article.link ?? '';
+    return savedArticlesJson.any((json) {
+      try {
+        if (json.isEmpty) return false;
+        final a = Result.fromJson(jsonDecode(json));
+        return (a.articleId ?? a.link ?? '') == articleId &&
+            articleId.isNotEmpty;
+      } catch (e) {
+        return false;
+      }
+    });
   }
 
   Future<bool> saveArticle(Result article) async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
-
-    // Check if article is already saved
-    final articleJson = jsonEncode(article.toJson());
-    if (savedArticlesJson.contains(articleJson)) {
-      return false; // Already saved
-    }
-
-    savedArticlesJson.insert(0, articleJson);
+    final articleId = article.articleId ?? article.link ?? '';
+    final alreadySaved = savedArticlesJson.any((json) {
+      try {
+        if (json.isEmpty) return false;
+        final a = Result.fromJson(jsonDecode(json));
+        return (a.articleId ?? a.link ?? '') == articleId &&
+            articleId.isNotEmpty;
+      } catch (e) {
+        return false;
+      }
+    });
+    if (alreadySaved) return false;
+    savedArticlesJson.insert(0, jsonEncode(article.toJson()));
     await prefs.setStringList(_bookmarksKey, savedArticlesJson);
     return true;
   }
@@ -60,14 +93,20 @@ class BookmarksService {
   Future<bool> removeArticle(Result article) async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
-
-    final articleJson = jsonEncode(article.toJson());
-    if (!savedArticlesJson.contains(articleJson)) {
-      return false; // Article wasn't saved
-    }
-
-    savedArticlesJson.remove(articleJson);
-    await prefs.setStringList(_bookmarksKey, savedArticlesJson);
+    final articleId = article.articleId ?? article.link ?? '';
+    final filteredArticles =
+        savedArticlesJson.where((json) {
+          try {
+            if (json.isEmpty) return false;
+            final a = Result.fromJson(jsonDecode(json));
+            return (a.articleId ?? a.link ?? '') != articleId ||
+                articleId.isEmpty;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+    if (filteredArticles.length == savedArticlesJson.length) return false;
+    await prefs.setStringList(_bookmarksKey, filteredArticles);
     return true;
   }
 }

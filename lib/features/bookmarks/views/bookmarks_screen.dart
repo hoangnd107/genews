@@ -11,6 +11,7 @@ import 'package:genews/shared/services/category_mapping_service.dart';
 import 'package:genews/shared/widgets/paginated_list_view.dart';
 import 'package:genews/features/main/providers/main_screen_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:genews/features/news/views/news_webview_screen.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -64,13 +65,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   }
 
   Future<void> _loadBookmarks() async {
+    debugPrint('Loading bookmarks...');
     setState(() {
       _isLoading = true;
     });
 
     try {
       final bookmarks = await _bookmarksService.getSavedArticles();
-
+      debugPrint('Bookmarks loaded: count = \\${bookmarks.length}');
       // Extract unique categories from bookmarked articles
       final categorySet = <String>{};
       for (var article in bookmarks) {
@@ -88,6 +90,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
 
       _animationController.forward();
     } catch (e) {
+      debugPrint('Error loading bookmarks: \\${e.toString()}');
       setState(() {
         _bookmarkedArticles = [];
         _isLoading = false;
@@ -278,6 +281,15 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final mainScreenProvider = Provider.of<MainScreenProvider>(context);
+    if (mainScreenProvider.currentIndex == 2 &&
+        !_isLoading &&
+        _bookmarkedArticles.isEmpty) {
+      // Ensure bookmarks are loaded when switching to this tab
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadBookmarks();
+      });
+    }
     final Set<String> categories = {};
     for (var article in _bookmarkedArticles) {
       final cat = CategoryMappingService.toVietnamese(article.category);
@@ -643,7 +655,12 @@ class _BookmarksScreenState extends State<BookmarksScreen>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NewsAnalysisScreen(newsData: article),
+              builder:
+                  (context) => NewsWebViewScreen(
+                    url: article.link ?? '',
+                    title: article.title ?? '',
+                    newsData: article,
+                  ),
             ),
           );
         },
@@ -660,7 +677,12 @@ class _BookmarksScreenState extends State<BookmarksScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => NewsAnalysisScreen(newsData: article),
+            builder:
+                (context) => NewsWebViewScreen(
+                  url: article.link ?? '',
+                  title: article.title ?? '',
+                  newsData: article,
+                ),
           ),
         );
       },
