@@ -21,7 +21,7 @@ class NewsProvider extends ChangeNotifier {
   String socialMediaPost = "";
   String generatedVideoScript = "";
 
-  // Thêm Map để cache analysis
+  // Thêm Map để cache summary
   final Map<String, String> _analysisCache = {};
 
   // Thêm method để get cache key
@@ -52,8 +52,8 @@ class NewsProvider extends ChangeNotifier {
     return fetchNews();
   }
 
-  // Cập nhật generateAnalysis method
-  generateAnalysis(String content) async {
+  // Cập nhật generateSummary method
+  generateSummary(String content) async {
     try {
       final cacheKey = _getAnalysisCacheKey(content);
 
@@ -81,7 +81,7 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Thêm method để regenerate analysis (bypass cache)
+  // Thêm method để regenerate summary (bypass cache)
   regenerateAnalysis(String content) async {
     try {
       final cacheKey = _getAnalysisCacheKey(content);

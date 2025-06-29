@@ -11,15 +11,15 @@ import 'package:genews/features/news/views/news_webview_screen.dart';
 import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
 import 'package:genews/features/main/providers/main_screen_provider.dart';
 
-class NewsAnalysisScreen extends StatefulWidget {
+class NewsSummaryScreen extends StatefulWidget {
   final Result newsData;
-  const NewsAnalysisScreen({super.key, required this.newsData});
+  const NewsSummaryScreen({super.key, required this.newsData});
 
   @override
-  State<NewsAnalysisScreen> createState() => _NewsAnalysisScreenState();
+  State<NewsSummaryScreen> createState() => _NewsSummaryScreenState();
 }
 
-class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
+class _NewsSummaryScreenState extends State<NewsSummaryScreen>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -29,7 +29,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
   void initState() {
     super.initState();
     _setupAnimations();
-    _fetchAnalysis();
+    _fetchSummary();
   }
 
   void _setupAnimations() {
@@ -59,20 +59,20 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
   }
 
   // ignore: strict_top_level_inference
-  _fetchAnalysis() {
-    context.read<NewsProvider>().generateAnalysis(
+  _fetchSummary() {
+    context.read<NewsProvider>().generateSummary(
       widget.newsData.description ?? widget.newsData.title ?? "",
     );
   }
 
   // ignore: strict_top_level_inference
-  _regenerateAnalysis() {
+  _regenerateSummary() {
     context.read<NewsProvider>().regenerateAnalysis(
       widget.newsData.description ?? widget.newsData.title ?? "",
     );
   }
 
-  void _copyAnalysis(String analysis) {
+  void _copySummary(String analysis) {
     Clipboard.setData(ClipboardData(text: analysis));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -378,7 +378,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _fetchAnalysis,
+                    onPressed: _fetchSummary,
                     icon: const Icon(Icons.refresh, color: Colors.white),
                     label: const Text(
                       "Thử lại",
@@ -413,7 +413,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
         children: [
           _buildArticleHeader(isDarkMode),
           const SizedBox(height: 20),
-          _buildAnalysisCard(newsState.analysis, isDarkMode),
+          _buildSummaryCard(newsState.analysis, isDarkMode),
           const SizedBox(height: 20),
           _buildActionButtons(newsState.analysis, isDarkMode),
           const SizedBox(height: 32),
@@ -533,7 +533,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
     );
   }
 
-  Widget _buildAnalysisCard(String analysis, bool isDarkMode) {
+  Widget _buildSummaryCard(String analysis, bool isDarkMode) {
     return Container(
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.grey[850] : Colors.white,
@@ -591,7 +591,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                 ),
                 const Spacer(),
                 IconButton(
-                  onPressed: () => _copyAnalysis(analysis),
+                  onPressed: () => _copySummary(analysis),
                   icon: Icon(
                     Icons.copy,
                     color: AppColors.primaryColor,
@@ -627,7 +627,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _copyAnalysis(analysis),
+                onPressed: () => _copySummary(analysis),
                 icon: Icon(
                   Icons.copy,
                   color: isDarkMode ? Colors.white : Colors.black87,
@@ -736,7 +736,7 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    _regenerateAnalysis();
+                    _regenerateSummary();
                   },
                 ),
 

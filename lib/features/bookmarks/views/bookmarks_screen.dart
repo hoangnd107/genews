@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
-import 'package:genews/features/analysis/views/news_summary_screen.dart';
+import 'package:genews/features/summary/views/news_summary_screen.dart';
 import 'package:genews/features/news/widgets/news_card.dart';
 import 'package:genews/features/news/widgets/category_bar.dart';
 import 'package:genews/app/themes/colors.dart';
@@ -818,7 +818,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                           ),
                         ),
                         PopupMenuItem<String>(
-                          value: 'analysis',
+                          value: 'summary',
                           child: Row(
                             children: [
                               const Icon(
@@ -867,13 +867,13 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                       case 'share':
                         _shareArticle(article);
                         break;
-                      case 'analysis':
+                      case 'summary':
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder:
                                 (context) =>
-                                    NewsAnalysisScreen(newsData: article),
+                                    NewsSummaryScreen(newsData: article),
                           ),
                         );
                         break;

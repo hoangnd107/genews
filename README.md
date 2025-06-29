@@ -40,7 +40,7 @@
 
   - **Firestore:** Real-time NoSQL DB for articles
   - **Cloud Run:** Serverless backend for fetchers
-  - **Google Gemini AI:** Summarization and content analysis (invoked from Flutter)
+  - **Google Gemini AI:** Summarization and content summary (invoked from Flutter)
 
 - **Frontend (Flutter):**
   - Cross-platform UI (single codebase)
@@ -76,12 +76,12 @@
 genews/
 ├── lib/
 │   ├── app/                # App config, themes, enums
-│   ├── features/           # Feature modules (news, bookmarks, analysis, main, settings)
-│   │   ├── analysis/
+│   ├── features/           # Feature modules (news, bookmarks, summary, main, settings)
 │   │   ├── bookmarks/
 │   │   ├── main/
 │   │   ├── news/
-│   │   └── settings/
+│   │   ├── settings/
+│   │   └── summary/
 │   ├── shared/             # Shared services, utils, widgets
 │   ├── main.dart           # App entry point
 │   └── genews.dart         # Library export
@@ -99,6 +99,21 @@ genews/
 ├── README.md
 └── ... (build/config files)
 ```
+
+---
+
+## 📱 App Preview
+
+> You can view more detailed app screenshots in the `assets/screenshots/` folder.
+
+<p align="center">
+  <img src="assets/screenshots/light/home.png" alt="Home Light" width="200" style="margin:8px;"/>
+  <img src="assets/screenshots/light/discover.png" alt="Discover" width="200" style="margin:8px;"/>
+  <img src="assets/screenshots/light/news.png" alt="News Detail" width="200" style="margin:8px;"/>
+  <img src="assets/screenshots/light/news_summary.png" alt="News Summary" width="200" style="margin:8px;"/>
+  <img src="assets/screenshots/light/bookmarks.png" alt="Bookmarks" width="200" style="margin:8px;"/>
+  <img src="assets/screenshots/light/settings.png" alt="Settings" width="200" style="margin:8px;"/>
+</p>
 
 ---
 
