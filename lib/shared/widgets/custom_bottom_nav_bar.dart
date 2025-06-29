@@ -12,6 +12,7 @@ class CustomBottomNavBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final navBarColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
@@ -19,6 +20,7 @@ class CustomBottomNavBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: navBarColor,
         borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: borderColor!, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),

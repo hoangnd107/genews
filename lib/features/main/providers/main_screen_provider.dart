@@ -9,4 +9,8 @@ class MainScreenProvider with ChangeNotifier {
     _currentIndex = index;
     notifyListeners();
   }
+
+  int getCurrentIndex() {
+    return _currentIndex;
+  }
 }

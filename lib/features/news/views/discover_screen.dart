@@ -195,19 +195,25 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 _loadSavedStates(allArticles);
               }
 
-              return CustomScrollView(
-                slivers: [
-                  // Custom App Bar (không có search bar)
-                  _buildSliverAppBar(),
+              return RefreshIndicator(
+                onRefresh: () async {
+                  final newsProvider = context.read<NewsProvider>();
+                  await newsProvider.fetchTrendingNews();
+                },
+                child: CustomScrollView(
+                  slivers: [
+                    // Custom App Bar (không có search bar)
+                    _buildSliverAppBar(),
 
-                  // Search Bar đặt riêng dưới AppBar
-                  SliverToBoxAdapter(child: _buildSearchBar()),
+                    // Search Bar đặt riêng dưới AppBar
+                    SliverToBoxAdapter(child: _buildSearchBar()),
 
-                  // Content
-                  SliverToBoxAdapter(
-                    child: _buildContent(newsState, allArticles),
-                  ),
-                ],
+                    // Content
+                    SliverToBoxAdapter(
+                      child: _buildContent(newsState, allArticles),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -534,7 +540,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                           : Colors.grey[600],
                                 ),
                               ),
-                          ),
+                        ),
                       ),
                       Expanded(
                         child: Padding(
@@ -1024,9 +1030,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                     : Icons.bookmark_add,
                                 size: 18,
                                 color:
-                                  isSaved
-                                      ? Colors.red
-                                      : AppColors.primaryColor,
+                                    isSaved
+                                        ? Colors.red
+                                        : AppColors.primaryColor,
                               ),
                               const SizedBox(width: 8),
                               Text(

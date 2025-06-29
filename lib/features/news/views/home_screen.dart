@@ -243,15 +243,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 _loadSavedStates(allArticles);
               }
 
-              return CustomScrollView(
-                slivers: [
-                  _buildSliverAppBar(),
-                  if (_isSearchActive)
-                    SliverToBoxAdapter(child: _buildSearchBar()),
-                  SliverToBoxAdapter(
-                    child: _buildContent(newsState, allArticles),
-                  ),
-                ],
+              return RefreshIndicator(
+                onRefresh: () async {
+                  _refreshNews();
+                  await Future.delayed(const Duration(milliseconds: 600));
+                },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    _buildSliverAppBar(),
+                    if (_isSearchActive)
+                      SliverToBoxAdapter(child: _buildSearchBar()),
+                    SliverToBoxAdapter(
+                      child: _buildContent(newsState, allArticles),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -268,11 +275,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       automaticallyImplyLeading: false,
       elevation: 0,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh, color: Colors.white),
-          onPressed: _refreshNews,
-          tooltip: 'Tải lại tin tức',
-        ),
+        // IconButton(
+        //   icon: const Icon(Icons.refresh, color: Colors.white),
+        //   onPressed: _refreshNews,
+        //   tooltip: 'Tải lại tin tức',
+        // ),
         IconButton(
           icon: Icon(
             _isSearchActive ? Icons.search_off : Icons.search,
@@ -1165,9 +1172,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     : Icons.bookmark_add,
                                 size: 18,
                                 color:
-                                  isSaved
-                                      ? Colors.red
-                                      : AppColors.primaryColor,
+                                    isSaved
+                                        ? Colors.red
+                                        : AppColors.primaryColor,
                               ),
                               const SizedBox(width: 8),
                               Text(

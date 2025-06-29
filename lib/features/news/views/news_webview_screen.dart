@@ -6,6 +6,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
+import 'package:provider/provider.dart';
+import 'package:genews/features/main/providers/main_screen_provider.dart';
 
 class NewsWebViewScreen extends StatefulWidget {
   final String url;
@@ -360,9 +362,12 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     // SỬA ĐỔI: Gọi super.build(context) để giữ state
     super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final selectedIndex = Provider.of<MainScreenProvider>(context).getCurrentIndex();
 
     return Scaffold(
-      bottomNavigationBar: CustomBottomNavBar(),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: selectedIndex,
+      ),
       appBar: AppBar(
         elevation: 1,
         shadowColor:

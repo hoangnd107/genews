@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:genews/shared/utils/share_utils.dart';
 import 'package:genews/features/news/views/news_webview_screen.dart';
 import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
+import 'package:genews/features/main/providers/main_screen_provider.dart';
 
 class NewsAnalysisScreen extends StatefulWidget {
   final Result newsData;
@@ -137,11 +138,13 @@ class _NewsAnalysisScreenState extends State<NewsAnalysisScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final selectedIndex = Provider.of<MainScreenProvider>(context).getCurrentIndex();
+
     return Scaffold(
-      bottomNavigationBar: CustomBottomNavBar(),
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: selectedIndex,
+      ),
       body: SafeArea(
-        // Thêm SafeArea
         child: CustomScrollView(
           slivers: [
             _buildSliverAppBar(isDarkMode),
