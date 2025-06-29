@@ -370,25 +370,29 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       appBar: AppBar(
         elevation: 0, // Remove default shadow for a cleaner gradient
         backgroundColor: Colors.transparent, // Make AppBar transparent
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors:
-                  isDarkMode
-                      ? [
-                        Color(0xFF232526), // dark gray
-                        Color(0xFF414345), // slightly lighter gray
-                        Color(0xFF5B86E5), // blue
-                        Color(0xFF232526), // dark gray again for depth
-                      ]
-                      : [
-                        Color(0xFF36D1C4), // teal
-                        Color(0xFF5B86E5), // blue
-                        Color(0xFF6A82FB), // light blue
-                        Color(0xFF8F6ED5), // purple
-                      ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        flexibleSpace: SafeArea(
+          top: true,
+          bottom: false,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors:
+                    isDarkMode
+                        ? [
+                          Color(0xFF232526), // dark gray
+                          Color(0xFF414345), // slightly lighter gray
+                          Color(0xFF5B86E5), // blue
+                          Color(0xFF232526), // dark gray again for depth
+                        ]
+                        : [
+                          Color(0xFF36D1C4), // teal
+                          Color(0xFF5B86E5), // blue
+                          Color(0xFF6A82FB), // light blue
+                          Color(0xFF8F6ED5), // purple
+                        ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
           ),
         ),
