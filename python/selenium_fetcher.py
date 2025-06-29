@@ -64,23 +64,23 @@ class SeleniumFetcher(BaseFetcher):
             logging.info("Selenium WebDriver is already initialized.")
             return
 
-        logging.info("Initializing Selenium WebDriver...")
+        logging.info("Initializing Selenium WebDriver with optimized options...")
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument(
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        )
-        # Add more optimized options for performance
         chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-software-rasterizer")
+        chrome_options.add_argument("--log-level=3")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument("--blink-settings=imagesEnabled=false")
+        chrome_options.add_argument(
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+        )
 
         try:
-            # For Cloud Run/Docker: use a fixed path provided by the environment.
-            # For local development: use ChromeDriverManager.
             chrome_driver_path = os.getenv("CHROME_DRIVER_PATH")
             if chrome_driver_path and os.path.exists(chrome_driver_path):
                 logging.info(f"Using ChromeDriver from path: {chrome_driver_path}")
@@ -134,12 +134,12 @@ class SeleniumFetcher(BaseFetcher):
             "creator": self.SOURCE_CONFIG["creator"],
             "video_url": None,
             "description": (
-                description.strip() if description else "No description available."
+                description.strip() if description else title.strip() or "No description available."
             ),
             "content": (
-                description.strip() if description else "No description available."
+                description.strip() if description else title.strip() or "No description available."
             ),
-            "pubDate": now,  # Dantri doesn't provide pubDate in list view
+            "pubDate": now,
             "image_url": self._extract_full_url(image_url) if image_url else None,
             "source_id": self.SOURCE_CONFIG["source_id"],
             "source_name": self.SOURCE_CONFIG["source_name"],
@@ -162,7 +162,7 @@ class SeleniumFetcher(BaseFetcher):
 
         try:
             self.driver.get(category_url)
-            time.sleep(3)  # Wait for dynamic content to load
+            time.sleep(3)
 
             article_elements = self.driver.find_elements(
                 By.CSS_SELECTOR, "article.article-item"
@@ -182,7 +182,7 @@ class SeleniumFetcher(BaseFetcher):
             for element in article_elements:
                 try:
                     title_element = element.find_element(
-                        By.CSS_SELECTOR, "h3.article-title a"
+                        By.CSS_SELECTOR, ".article-title a"
                     )
                     title = title_element.text.strip()
                     link = title_element.get_attribute("href")
@@ -194,7 +194,7 @@ class SeleniumFetcher(BaseFetcher):
                         )
                         description = desc_element.text.strip()
                     except:
-                        pass  # Description is optional
+                        pass
 
                     image_url = None
                     try:
@@ -205,7 +205,7 @@ class SeleniumFetcher(BaseFetcher):
                             "data-src"
                         ) or thumb_element.get_attribute("src")
                     except:
-                        pass  # Image is optional
+                        pass
 
                     if title and link:
                         article = self._create_article_dict(
@@ -260,9 +260,8 @@ class SeleniumFetcher(BaseFetcher):
             logging.critical(
                 f"A critical error occurred in fetch_all: {e}", exc_info=True
             )
-            # Ensure summary is updated even on failure
             self.update_summary_document(0, 0, [], "selenium_scrape", status="failed")
-            return False  # Indicate failure
+            return False
         finally:
             self._close_selenium()
 
@@ -292,7 +291,6 @@ class SeleniumFetcher(BaseFetcher):
             self.driver.get(url)
             time.sleep(3)
 
-            # Common selectors for Dantri article content
             content_selectors = [
                 ".singular-content",
                 ".article-content",
@@ -305,7 +303,6 @@ class SeleniumFetcher(BaseFetcher):
                         By.CSS_SELECTOR, selector
                     )
                     if content_element:
-                        # Remove unwanted elements before getting text
                         for unwanted_selector in [".ads", "script", "style"]:
                             try:
                                 for el in content_element.find_elements(
@@ -329,7 +326,7 @@ class SeleniumFetcher(BaseFetcher):
     def scrape_content_for_existing_articles(self, limit: int = 10):
         """Finds articles missing full content and scrapes it."""
         logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
-
+        
         try:
             self._init_selenium()
             docs = (
@@ -358,7 +355,7 @@ class SeleniumFetcher(BaseFetcher):
                         }
                     )
                     updated_count += 1
-                    time.sleep(3)  # Be respectful
+                    time.sleep(3)
 
             logging.info(f"✅ Updated content for {updated_count} articles.")
 

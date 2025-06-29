@@ -51,6 +51,10 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 8080
 
-# The command to run the application
-# Using --schedule flag to run in scheduler mode on Cloud Run
-CMD ["python", "main.py", "--schedule"]
+# The command to run the application using Gunicorn
+# - 'main:app' tells Gunicorn to look for the 'app' object in the 'main.py' file.
+# - '--bind 0.0.0.0:$PORT' makes the server accessible externally and uses the port defined by Cloud Run.
+# - '--workers 1' is suitable for Cloud Run's single-core instances.
+# - '--threads 8' allows handling multiple concurrent requests.
+# - '--timeout 120' sets a reasonable request timeout.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "120", "main:app"]

@@ -5,13 +5,13 @@ import schedule
 import os
 from datetime import datetime
 from flask import Flask
-import argparse
 
 # Import the refactored fetcher classes
 from api_fetcher import APIFetcher
 from rss_fetcher import RSSFetcher
 from selenium_fetcher import SeleniumFetcher
 
+# Initialize Flask app
 app = Flask(__name__)
 
 
@@ -75,60 +75,46 @@ def run_all_fetchers_sequential():
 
 
 def run_scheduler():
-    """Run the scheduler continuously"""
+    """Run the scheduler continuously in a background thread."""
     setup_logging()
 
     # Schedule to run every hour
     schedule.every().hour.do(run_all_fetchers_sequential)
 
-    logging.info("🕐 Starting news fetcher scheduler on Cloud Run...")
-    logging.info("📅 Scheduled to run every 1 hour")
+    logging.info("🕐 Starting news fetcher scheduler...")
+    logging.info("📅 Scheduled to run every 1 hour.")
 
-    # Run once immediately
+    # Run once immediately at startup
     run_all_fetchers_sequential()
 
     # Keep the scheduler running
     while True:
         try:
             schedule.run_pending()
-            time.sleep(60)
+            time.sleep(60)  # Check every 60 seconds
         except Exception as e:
             logging.error(f"❌ Scheduler error: {e}", exc_info=True)
             time.sleep(60)
 
 
-def main(schedule=False):
-    """Main function"""
-    if schedule:
-        # Start Flask health check server in background
-        import threading
+def main():
+    """
+    Main function to set up and start the application.
+    This will start the scheduler in a background thread.
+    The Flask app object 'app' will be served by Gunicorn.
+    """
+    setup_logging()
+    logging.info("🚀 Initializing application...")
 
-        flask_thread = threading.Thread(
-            target=lambda: app.run(
-                host="0.0.0.0", port=int(os.environ.get("PORT", 8080))
-            )
-        )
-        flask_thread.daemon = True
-        flask_thread.start()
+    # Start the scheduler in a background thread.
+    # The thread is set as a daemon so it will be terminated when the main process exits.
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
 
-        # Run scheduler
-        run_scheduler()
-    else:
-        setup_logging()
-        run_all_fetchers_sequential()
+    logging.info("✅ Application setup complete. Ready to serve requests.")
 
 
-if __name__ == "__main__":
-    import threading
-
-    # Chạy Flask server ở background
-    flask_thread = threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080))
-    flask_thread.daemon = True
-    flask_thread.start()
-
-    parser = argparse.ArgumentParser(description="News Fetcher Scheduler")
-    parser.add_argument(
-        "--schedule", action="store_true", help="Run in schedule mode for Cloud Run"
-    )
-    args = parser.parse_args()
-    main(schedule=args.schedule)
+# This block is now the single point of entry.
+# When Gunicorn runs, it imports the 'app' object.
+# We will start our background tasks here.
+main()
