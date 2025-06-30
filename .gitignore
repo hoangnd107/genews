@@ -292,8 +292,8 @@ lib/core/serviceAccountKey.json
 **/google-services.json
 **/GoogleService-Info.plist
 
-# Sensitive keys
-**/serviceAccountKey.json
+lib/app/config/constants.dart
+lib/app/config/firebase_options.dart
+python/serviceAccountKey.json
 
-# Config files
-**/constants.dart
+.cache_ggshield
