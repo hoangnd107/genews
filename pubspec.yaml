@@ -44,6 +44,7 @@ dependencies:
   offline_first_support: ^0.1.0
   webview_flutter: ^4.13.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
   cloud_firestore: ^5.6.9
   shared_preferences: ^2.5.3
   carousel_slider: ^5.1.1
@@ -66,6 +67,14 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/icon.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/icon/icon.png"
+  android: true
+  ios: true
+  android_gravity: center
+  ios_content_mode: center
 
 # The following section is specific to Flutter packages.
 flutter:
