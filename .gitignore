@@ -282,9 +282,6 @@ ios/Flutter/Flutter.podspec
 # Generated files
 lib/generated_plugin_registrant.dart
 
-# Sensitive keys
-lib/core/serviceAccountKey.json
-
 # dotenv
 .env*
 

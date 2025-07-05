@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:genews/features/news/data/models/news_data_model.dart';
@@ -5,6 +6,7 @@ import 'package:genews/features/summary/views/news_summary_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:genews/shared/services/bookmarks_service.dart';
 import 'package:genews/shared/utils/share_utils.dart';
+import 'package:genews/shared/utils/webview_utils.dart';
 import 'package:genews/shared/widgets/custom_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:genews/features/main/providers/main_screen_provider.dart';
@@ -35,114 +37,19 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
   int _blockedAdsCount = 0;
   bool _isAdBlockingEnabled = false;
 
+  Timer? _loadingTimer;
+  bool _hasError = false;
+  String? _errorMessage;
+
   // SỬA ĐỔI: Ghi đè wantKeepAlive để giữ state
   @override
   bool get wantKeepAlive => true;
 
-  // SỬA ĐỔI: Cập nhật danh sách domain chặn quảng cáo
-  static const List<String> _adBlockList = [
-    'doubleclick.net',
-    'googleadservices.com',
-    'googlesyndication.com',
-    'google-analytics.com',
-    'googletagmanager.com',
-    'facebook.com/tr',
-    'facebook.net',
-    'amazon-adsystem.com',
-    'adsystem.com',
-    'ads.yahoo.com',
-    'bing.com/search',
-    'outbrain.com',
-    'taboola.com',
-    'addthis.com',
-    'sharethis.com',
-    'scorecardresearch.com',
-    'quantserve.com',
-    'hotjar.com',
-    'mouseflow.com',
-    'crazyegg.com',
-    'adnxs.com',
-    'pubmatic.com',
-    'rubiconproject.com',
-    'openx.net',
-    'advertising.com',
-    'ads.twitter.com',
-    'analytics.twitter.com',
-    'ads.linkedin.com',
-    'ads.pinterest.com',
-    'ads.tiktok.com',
-    'adform.net',
-    'adsrvr.org',
-    'amazon-advertising.com',
-    'criteo.com',
-    'turn.com',
-    'rlcdn.com',
-    'serving-sys.com',
-    'moatads.com',
-    'adroll.com',
-    'casalemedia.com',
-    'contextweb.com',
-    'exponential.com',
-    'indexww.com',
-    'sharethrough.com',
-    'sovrn.com',
-    'spotxchange.com',
-    'springserve.com',
-    'teads.tv',
-    'tidaltv.com',
-    'undertone.com',
-    'yieldmo.com',
-    'ads.google.com',
-    'www.googletagservices.com',
-    'pagead2.googlesyndication.com',
-    'tpc.googlesyndication.com',
-    'googleads.g.doubleclick.net',
-    'static.doubleclick.net',
-    'stats.g.doubleclick.net',
-    'cm.g.doubleclick.net',
-    'ad.doubleclick.net',
-  ];
+  // Tối ưu hóa danh sách domain chặn quảng cáo - sử dụng từ WebViewUtils
+  // static const List<String> _adBlockList = WebViewUtils.basicAdDomains;
 
-  // SỬA ĐỔI: Cập nhật script chặn quảng cáo
-  static const String _adBlockingScript = '''
-    (function() {
-      const adSelectors = [
-        '[id*="ad"]', '[class*="ad"]', '[id*="banner"]', '[class*="banner"]',
-        '[id*="sponsor"]', '[class*="sponsor"]', '[id*="popup"]', '[class*="popup"]',
-        'iframe[src*="doubleclick"]', 'iframe[src*="googlesyndication"]',
-        'iframe[src*="googleadservices"]', '.advertisement', '.ads', '.banner',
-        '.sponsor', '.popup', '.advert', '#ads', '#advertisement', '#banner',
-        'div[id*="google_ads"]', 'div[class*="google-ad"]'
-      ];
-      
-      let removedCount = 0;
-      function removeAds() {
-        adSelectors.forEach(selector => {
-          try {
-            document.querySelectorAll(selector).forEach(el => {
-              if (el && el.parentNode) {
-                el.style.display = 'none !important';
-                el.remove();
-                removedCount++;
-              }
-            });
-          } catch (e) {}
-        });
-        
-        document.querySelectorAll('script').forEach(script => {
-          if (script.src && script.src.includes('googlesyndication')) {
-            script.remove();
-            removedCount++;
-          }
-        });
-      }
-      
-      removeAds();
-      const observer = new MutationObserver(removeAds);
-      observer.observe(document.body, { childList: true, subtree: true });
-      console.log('Ad blocker executed. Removed ' + removedCount + ' elements.');
-    })();
-  ''';
+  // Cải tiến script chặn quảng cáo - sử dụng từ WebViewUtils
+  // static const String _adBlockingScript = WebViewUtils.lightAdBlockScript;
 
   @override
   void initState() {
@@ -162,55 +69,119 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
   }
 
   void _setupWebViewController() {
-    _controller =
-        WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..setNavigationDelegate(
-            NavigationDelegate(
-              onPageStarted: (String url) {
-                setState(() {
-                  isLoading = true;
-                });
-              },
-              onPageFinished: (String url) {
-                setState(() {
-                  isLoading = false;
-                });
-                // SỬA ĐỔI: Chỉ chạy script khi tính năng được bật
-                if (_isAdBlockingEnabled) {
-                  _injectAdBlockingScript();
-                }
-              },
-              onWebResourceError: (WebResourceError error) {
-                debugPrint('Web Resource Error: ${error.description}');
-              },
-              onNavigationRequest: (NavigationRequest request) {
-                // SỬA ĐỔI: Chỉ chặn URL khi tính năng được bật
-                if (_isAdBlockingEnabled && _isAdUrl(request.url)) {
-                  if (mounted) {
-                    setState(() {
-                      _blockedAdsCount++;
-                    });
-                  }
-                  return NavigationDecision.prevent;
-                }
-                return NavigationDecision.navigate;
-              },
+    _controller = WebViewUtils.createOptimizedController(
+      url: widget.url,
+      enableAdBlock: _isAdBlockingEnabled,
+      onLoadingChanged: (bool loading) {
+        // Hủy timer cũ nếu có
+        _loadingTimer?.cancel();
+        if (mounted) {
+          setState(() {
+            isLoading = loading;
+            if (loading) {
+              _hasError = false;
+              _errorMessage = null;
+            }
+          });
+        }
+      },
+      onNavigationRequest: (NavigationRequest request) {
+        // Chặn các URL quảng cáo để tăng tốc độ load
+        if (_isAdBlockingEnabled && WebViewUtils.isAdUrl(request.url)) {
+          if (mounted) {
+            setState(() {
+              _blockedAdsCount++;
+            });
+          }
+          return NavigationDecision.prevent;
+        }
+        return NavigationDecision.navigate;
+      },
+      onError: (WebResourceError error) {
+        debugPrint('Web Resource Error: ${error.description}');
+        // Chỉ hiển thị lỗi nếu là lỗi nghiêm trọng
+        if (error.errorType == WebResourceErrorType.hostLookup ||
+            error.errorType == WebResourceErrorType.connect ||
+            error.errorType == WebResourceErrorType.timeout) {
+          if (mounted && isLoading) {
+            setState(() {
+              isLoading = false;
+              _hasError = true;
+              _errorMessage =
+                  'Không thể kết nối đến trang web. Vui lòng kiểm tra kết nối mạng.';
+            });
+          }
+        }
+      },
+    );
+
+    // Load trang web với timeout
+    _loadPageWithTimeout();
+  }
+
+  // Thêm timeout để tránh load quá lâu
+  void _loadPageWithTimeout() async {
+    // Đặt timeout 10 giây cho việc load trang
+    _loadingTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && isLoading) {
+        setState(() {
+          isLoading = false;
+          _hasError = true;
+          _errorMessage = 'Trang web tải quá lâu. Vui lòng thử lại.';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Trang web tải quá lâu. Vui lòng thử lại.'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Thử lại',
+              textColor: Colors.white,
+              onPressed: () => _reloadPage(),
             ),
-          )
-          ..loadRequest(Uri.parse(widget.url));
+          ),
+        );
+      }
+    });
+
+    try {
+      await _controller.loadRequest(Uri.parse(widget.url));
+    } catch (e) {
+      debugPrint('Error loading page: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          _hasError = true;
+          _errorMessage =
+              'Không thể tải trang. Vui lòng kiểm tra kết nối mạng.';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Không thể tải trang. Vui lòng kiểm tra kết nối mạng.',
+            ),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Thử lại',
+              textColor: Colors.white,
+              onPressed: () => _reloadPage(),
+            ),
+          ),
+        );
+      }
+    }
   }
 
-  // SỬA ĐỔI: Sử dụng danh sách domain mới
-  bool _isAdUrl(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return false;
-    return _adBlockList.any((adDomain) => uri.host.contains(adDomain));
-  }
+  // Thêm phương thức reload trang
+  void _reloadPage() {
+    setState(() {
+      isLoading = true;
+      _hasError = false;
+      _errorMessage = null;
+    });
+    _loadingTimer?.cancel();
 
-  // SỬA ĐỔI: Sử dụng script mới
-  void _injectAdBlockingScript() {
-    _controller.runJavaScript(_adBlockingScript);
+    // Tạo lại controller với cấu hình mới
+    _setupWebViewController();
   }
 
   void _toggleSaved() async {
@@ -286,7 +257,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   title: const Text('Nhỏ'),
                   onTap: () {
                     _controller.runJavaScript(
-                      'document.body.style.fontSize = "14px"',
+                      WebViewUtils.getFontSizeScript(14),
                     );
                     Navigator.pop(context);
                   },
@@ -296,7 +267,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   title: const Text('Trung bình'),
                   onTap: () {
                     _controller.runJavaScript(
-                      'document.body.style.fontSize = "16px"',
+                      WebViewUtils.getFontSizeScript(16),
                     );
                     Navigator.pop(context);
                   },
@@ -306,7 +277,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   title: const Text('Lớn'),
                   onTap: () {
                     _controller.runJavaScript(
-                      'document.body.style.fontSize = "18px"',
+                      WebViewUtils.getFontSizeScript(18),
                     );
                     Navigator.pop(context);
                   },
@@ -316,7 +287,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   title: const Text('Rất lớn'),
                   onTap: () {
                     _controller.runJavaScript(
-                      'document.body.style.fontSize = "20px"',
+                      WebViewUtils.getFontSizeScript(20),
                     );
                     Navigator.pop(context);
                   },
@@ -429,7 +400,7 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                   _showFontSizeDialog();
                   break;
                 case 'reload':
-                  _controller.reload();
+                  _reloadPage();
                   break;
                 case 'toggle_adblock':
                   _toggleAdBlocking();
@@ -548,33 +519,113 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       ),
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          // Hiển thị WebView hoặc error state
+          if (!_hasError)
+            WebViewWidget(controller: _controller)
+          else
+            Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage ?? 'Đã xảy ra lỗi khi tải trang',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _reloadPage,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (isLoading)
             Container(
               color: (isDarkMode ? Colors.black : Colors.white).withOpacity(
-                0.8,
+                0.9,
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    const Text(
+                    // Skeleton loading animation thay vì CircularProgressIndicator
+                    Container(
+                      width: 200,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.grey[300],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.grey[300],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDarkMode ? Colors.blue[300]! : Colors.blue[600]!,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
                       'Đang tải nội dung...',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Vui lòng chờ trong giây lát',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.white54 : Colors.black54,
                       ),
                     ),
                     if (_isAdBlockingEnabled) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '🛡️ Chặn quảng cáo: Đang bật',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.green[600],
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.shield,
+                              color: Colors.green[600],
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Chặn quảng cáo: Đang hoạt động',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
