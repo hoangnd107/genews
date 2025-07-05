@@ -118,3 +118,8 @@ def main():
 # When Gunicorn runs, it imports the 'app' object.
 # We will start our background tasks here.
 main()
+
+# Test local execution
+# if __name__ == "__main__":
+#     main()
+#     app.run(host="0.0.0.0", port=5000, debug=True)
