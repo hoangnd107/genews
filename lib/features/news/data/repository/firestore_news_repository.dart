@@ -26,17 +26,16 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
   Future<NewsDataModel> fetchTrendingNews() async {
     try {
       log(
-        "🔥 Fetching 100 news from Firestore collection: $articlesCollectionName",
+        "Fetching 100 news from Firestore collection: $articlesCollectionName",
       );
 
-      // Check if offline and has cached data
       final hasInternet =
           await OfflineNewsService.instance.hasInternetConnection();
       final isCachedFresh =
           await OfflineNewsService.instance.isCachedDataFresh();
 
       if (!hasInternet && isCachedFresh) {
-        log("📱 Using cached data (offline mode)");
+        log("Using cached data (offline mode)");
         final cachedArticles =
             await OfflineNewsService.instance.getCachedArticles();
         return NewsDataModel(
@@ -48,19 +47,15 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
       }
 
       final querySnapshot =
-          await _firestore
-              .collection(articlesCollectionName)
-              .limit(100)
-              .get();
+          await _firestore.collection(articlesCollectionName).limit(100).get();
 
       if (querySnapshot.docs.isEmpty) {
-        log("⚠️ No articles found in Firestore collection");
+        log("No articles found in Firestore collection");
 
-        // Try to return cached data even if not fresh
         final cachedArticles =
             await OfflineNewsService.instance.getCachedArticles();
         if (cachedArticles.isNotEmpty) {
-          log("📱 Using cached data as fallback");
+          log("Using cached data as fallback");
           return NewsDataModel(
             status: "success",
             totalResults: cachedArticles.length,
@@ -77,16 +72,13 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
         );
       }
 
-      log("✅ Found ${querySnapshot.docs.length} articles from Firestore");
+      log("Found ${querySnapshot.docs.length} articles from Firestore");
 
-      // Convert Firestore documents to Result objects using helper method
       final List<Result> articles =
           querySnapshot.docs.map((doc) => _mapDocumentToResult(doc)).toList();
 
-      // Cache articles for offline use
       await OfflineNewsService.instance.cacheArticles(articles);
 
-      // Create NewsDataModel compatible with existing code
       final newsDataModel = NewsDataModel(
         status: "success",
         totalResults: articles.length,
@@ -95,18 +87,17 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
       );
 
       log(
-        "🎉 Successfully converted ${articles.length} Firestore articles to NewsDataModel",
+        "Successfully converted ${articles.length} Firestore articles to NewsDataModel",
       );
       return newsDataModel;
     } catch (e, stackTrace) {
-      log("❌ Error fetching news from Firestore: $e");
+      log("Error fetching news from Firestore: $e");
       log("Stack trace: $stackTrace");
 
-      // Return cached data as fallback
       final cachedArticles =
           await OfflineNewsService.instance.getCachedArticles();
       if (cachedArticles.isNotEmpty) {
-        log("📱 Using cached data due to error");
+        log("Using cached data due to error");
         return NewsDataModel(
           status: "success",
           totalResults: cachedArticles.length,
@@ -115,7 +106,7 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
         );
       }
 
-      throw Exception("❌ Lỗi khi lấy tin tức từ Firestore: $e");
+      throw Exception("Lỗi khi lấy tin tức từ Firestore: $e");
     }
   }
 
@@ -124,17 +115,15 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
     String content, {
     String? articleId,
   }) async {
-    // Check for cached AI summary first
     if (articleId != null) {
       final cachedSummary = await OfflineNewsService.instance
           .getCachedAiSummary(articleId);
       if (cachedSummary != null) {
-        log("✅ Using cached AI summary for article: $articleId");
+        log("Using cached AI summary for article: $articleId");
         return cachedSummary;
       }
     }
 
-    // Check internet connection before generating new summary
     final hasInternet =
         await OfflineNewsService.instance.hasInternetConnection();
     if (!hasInternet) {
@@ -175,7 +164,6 @@ Yêu cầu:
 
     final summary = await _generateContent(prompt);
 
-    // Cache the generated summary
     if (articleId != null && summary.isNotEmpty) {
       await OfflineNewsService.instance.cacheAiSummary(articleId, summary);
     }
@@ -196,13 +184,11 @@ Yêu cầu:
     final response = await _model.generateContent([ai.Content.text(prompt)]);
 
     if (response.text == null) {
-      throw Exception("❌ Lỗi");
+      throw Exception("Lỗi");
     }
     _offlineFirst.saveData(key: prompt, content: response.text!);
     return response.text!;
   }
-
-  // Helper methods to convert Firestore data to proper types
 
   List<String> _convertToStringList(dynamic value) {
     if (value == null) return [];
@@ -225,7 +211,6 @@ Yêu cầu:
     if (value == null || value.isEmpty)
       return Content.ONLY_AVAILABLE_IN_PAID_PLANS;
 
-    // Map content values từ Firestore
     switch (value.toLowerCase()) {
       case 'content_to_be_scraped':
         return Content.ONLY_AVAILABLE_IN_PAID_PLANS;
@@ -270,7 +255,6 @@ Yêu cầu:
     return Ai.ONLY_AVAILABLE_IN_CORPORATE_PLANS;
   }
 
-  // Helper method to map Firestore document to Result object
   Result _mapDocumentToResult(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
 
@@ -318,69 +302,61 @@ Yêu cầu:
     );
   }
 
-  // Method to get articles by category
-  // Method to get articles by category - enhanced with Firestore fallback
   @override
   Future<List<Result>> getArticlesByCategory(String category) async {
     try {
       log("🔍 Getting articles for category: $category");
 
-      // First try to get from cached data
       final cachedArticles = await OfflineNewsService.instance
           .getArticlesByCategory(category);
 
       if (cachedArticles.isNotEmpty) {
         log(
-          "✅ Found ${cachedArticles.length} articles for category '$category' in cache",
+          "Found ${cachedArticles.length} articles for category '$category' in cache",
         );
         return cachedArticles;
       }
 
       log(
-        "⚠️ No articles found for category '$category' in cache, querying Firestore...",
+        "No articles found for category '$category' in cache, querying Firestore...",
       );
 
-      // If no cached articles for this category, query from Firestore
       final querySnapshot =
           await _firestore
               .collection(articlesCollectionName)
               .where('category', isEqualTo: category)
-              .limit(50) // Limit to 50 articles per category
+              .limit(50)
               .get();
 
       if (querySnapshot.docs.isEmpty) {
-        log("⚠️ No articles found for category '$category' in Firestore");
+        log("No articles found for category '$category' in Firestore");
         return [];
       }
 
       log(
-        "✅ Found ${querySnapshot.docs.length} articles for category '$category' from Firestore",
+        "Found ${querySnapshot.docs.length} articles for category '$category' from Firestore",
       );
 
-      // Convert Firestore documents to Result objects
       final List<Result> articles =
           querySnapshot.docs.map((doc) => _mapDocumentToResult(doc)).toList();
 
-      // Add these articles to existing cache
       await OfflineNewsService.instance.addArticlesToCache(articles);
 
       return articles;
     } catch (e) {
-      log("❌ Error getting articles by category: $e");
+      log("Error getting articles by category: $e");
       return [];
     }
   }
 
-  // Method to search articles - now uses cached data
   @override
   Future<List<Result>> searchArticles(String query) async {
     try {
       log("🔍 Searching cached articles with query: $query");
 
-      // Use cached articles for better performance and offline support
       return await OfflineNewsService.instance.searchCachedArticles(query);
     } catch (e) {
-      log("❌ Error searching cached articles: $e");
+      log("Error searching cached articles: $e");
       return [];
     }
   }

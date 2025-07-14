@@ -27,7 +27,6 @@ class NewsWebViewScreen extends StatefulWidget {
   State<NewsWebViewScreen> createState() => _NewsWebViewScreenState();
 }
 
-// SỬA ĐỔI: Thêm AutomaticKeepAliveClientMixin để giữ trạng thái WebView
 class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     with AutomaticKeepAliveClientMixin {
   late final WebViewController _controller;
@@ -41,15 +40,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
   bool _hasError = false;
   String? _errorMessage;
 
-  // SỬA ĐỔI: Ghi đè wantKeepAlive để giữ state
   @override
   bool get wantKeepAlive => true;
-
-  // Tối ưu hóa danh sách domain chặn quảng cáo - sử dụng từ WebViewUtils
-  // static const List<String> _adBlockList = WebViewUtils.basicAdDomains;
-
-  // Cải tiến script chặn quảng cáo - sử dụng từ WebViewUtils
-  // static const String _adBlockingScript = WebViewUtils.lightAdBlockScript;
 
   @override
   void initState() {
@@ -73,7 +65,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       url: widget.url,
       enableAdBlock: _isAdBlockingEnabled,
       onLoadingChanged: (bool loading) {
-        // Hủy timer cũ nếu có
         _loadingTimer?.cancel();
         if (mounted) {
           setState(() {
@@ -86,7 +77,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
         }
       },
       onNavigationRequest: (NavigationRequest request) {
-        // Chặn các URL quảng cáo để tăng tốc độ load
         if (_isAdBlockingEnabled && WebViewUtils.isAdUrl(request.url)) {
           if (mounted) {
             setState(() {
@@ -99,7 +89,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       },
       onError: (WebResourceError error) {
         debugPrint('Web Resource Error: ${error.description}');
-        // Chỉ hiển thị lỗi nếu là lỗi nghiêm trọng
         if (error.errorType == WebResourceErrorType.hostLookup ||
             error.errorType == WebResourceErrorType.connect ||
             error.errorType == WebResourceErrorType.timeout) {
@@ -115,13 +104,10 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       },
     );
 
-    // Load trang web với timeout
     _loadPageWithTimeout();
   }
 
-  // Thêm timeout để tránh load quá lâu
   void _loadPageWithTimeout() async {
-    // Đặt timeout 10 giây cho việc load trang
     _loadingTimer = Timer(const Duration(seconds: 10), () {
       if (mounted && isLoading) {
         setState(() {
@@ -171,7 +157,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     }
   }
 
-  // Thêm phương thức reload trang
   void _reloadPage() {
     setState(() {
       isLoading = true;
@@ -179,8 +164,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       _errorMessage = null;
     });
     _loadingTimer?.cancel();
-
-    // Tạo lại controller với cấu hình mới
     _setupWebViewController();
   }
 
@@ -304,23 +287,21 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     );
   }
 
-  // SỬA ĐỔI: Hàm bật/tắt chặn quảng cáo
   void _toggleAdBlocking() {
     setState(() {
       _isAdBlockingEnabled = !_isAdBlockingEnabled;
-      _blockedAdsCount = 0; // Reset bộ đếm
-      isLoading = true; // Hiển thị loading khi reload
+      _blockedAdsCount = 0;
+      isLoading = true;
     });
 
-    // Tải lại trang để áp dụng thay đổi
     _controller.reload();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           _isAdBlockingEnabled
-              ? '✅ Đã bật chặn quảng cáo. Trang sẽ được tải lại.'
-              : '❌ Đã tắt chặn quảng cáo. Trang sẽ được tải lại.',
+              ? 'Đã bật chặn quảng cáo. Trang sẽ được tải lại.'
+              : 'Đã tắt chặn quảng cáo. Trang sẽ được tải lại.',
         ),
         backgroundColor: _isAdBlockingEnabled ? Colors.green : Colors.red,
         behavior: SnackBarBehavior.floating,
@@ -330,7 +311,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
 
   @override
   Widget build(BuildContext context) {
-    // SỬA ĐỔI: Gọi super.build(context) để giữ state
     super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final selectedIndex =
@@ -339,8 +319,8 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
     return Scaffold(
       bottomNavigationBar: CustomBottomNavBar(selectedIndex: selectedIndex),
       appBar: AppBar(
-        elevation: 0, // Remove default shadow for a cleaner gradient
-        backgroundColor: Colors.transparent, // Make AppBar transparent
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         flexibleSpace: SafeArea(
           top: true,
           bottom: false,
@@ -374,7 +354,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // SỬA ĐỔI: Gom các nút vào PopupMenuButton, sắp xếp lại và chỉnh màu sắc
           PopupMenuButton<String>(
             icon: Icon(
               Icons.more_vert,
@@ -409,7 +388,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
             },
             itemBuilder:
                 (context) => [
-                  // Item lưu tin
                   PopupMenuItem(
                     value: 'bookmark',
                     child: Row(
@@ -429,7 +407,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                       ],
                     ),
                   ),
-                  // Item chia sẻ
                   PopupMenuItem(
                     value: 'share',
                     child: Row(
@@ -444,7 +421,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                       ],
                     ),
                   ),
-                  // Item sao chép link
                   PopupMenuItem(
                     value: 'copy_link',
                     child: Row(
@@ -455,7 +431,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                       ],
                     ),
                   ),
-                  // Item cỡ chữ
                   PopupMenuItem(
                     value: 'font_size',
                     child: Row(
@@ -470,7 +445,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                       ],
                     ),
                   ),
-                  // Item tải lại
                   PopupMenuItem(
                     value: 'reload',
                     child: Row(
@@ -482,7 +456,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                     ),
                   ),
                   const PopupMenuDivider(),
-                  // Item bật/tắt chặn quảng cáo (đặt cuối, nổi bật)
                   PopupMenuItem(
                     value: 'toggle_adblock',
                     child: Row(
@@ -519,7 +492,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
       ),
       body: Stack(
         children: [
-          // Hiển thị WebView hoặc error state
           if (!_hasError)
             WebViewWidget(controller: _controller)
           else
@@ -559,7 +531,6 @@ class _NewsWebViewScreenState extends State<NewsWebViewScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Skeleton loading animation thay vì CircularProgressIndicator
                     Container(
                       width: 200,
                       height: 8,

@@ -21,12 +21,9 @@ class NewsProvider extends ChangeNotifier {
   String socialMediaPost = "";
   String generatedVideoScript = "";
 
-  // Thêm Map để cache summary
   final Map<String, String> _analysisCache = {};
 
-  // Thêm method để get cache key
   String _getAnalysisCacheKey(String content) {
-    // Sử dụng hash của content làm key để tránh key quá dài
     return content.hashCode.toString();
   }
 
@@ -47,17 +44,14 @@ class NewsProvider extends ChangeNotifier {
     }
   }
 
-  // Alias for fetchNews for clearer semantics
   Future<void> fetchTrendingNews() async {
     return fetchNews();
   }
 
-  // Cập nhật generateSummary method
   generateSummary(String content) async {
     try {
       final cacheKey = _getAnalysisCacheKey(content);
 
-      // Kiểm tra cache trước
       if (_analysisCache.containsKey(cacheKey)) {
         analysis = _analysisCache[cacheKey]!;
         newsAnalysisState = ViewState.success;
@@ -70,7 +64,6 @@ class NewsProvider extends ChangeNotifier {
 
       final result = await _newsRepo.generateNewsAiAnalysis(content);
 
-      // Lưu vào cache
       _analysisCache[cacheKey] = result;
       analysis = result;
       newsAnalysisState = ViewState.success;
@@ -81,7 +74,6 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Thêm method để regenerate summary (bypass cache)
   regenerateAnalysis(String content) async {
     try {
       final cacheKey = _getAnalysisCacheKey(content);
@@ -91,7 +83,6 @@ class NewsProvider extends ChangeNotifier {
 
       final result = await _newsRepo.generateNewsAiAnalysis(content);
 
-      // Cập nhật cache với kết quả mới
       _analysisCache[cacheKey] = result;
       analysis = result;
       newsAnalysisState = ViewState.success;
@@ -102,7 +93,6 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Method để clear cache nếu cần
   void clearAnalysisCache() {
     _analysisCache.clear();
   }
@@ -112,11 +102,9 @@ class NewsProvider extends ChangeNotifier {
     _updateUI();
 
     try {
-      // Convert display category to query key (English or Vietnamese)
       final queryCategory = category;
       final articles = await _newsRepo.getArticlesByCategory(queryCategory);
 
-      // Convert articles to NewsDataModel format
       _allNews = NewsDataModel(
         status: "success",
         totalResults: articles.length,
@@ -140,7 +128,6 @@ class NewsProvider extends ChangeNotifier {
     try {
       final articles = await _newsRepo.searchArticles(query);
 
-      // Convert articles to NewsDataModel format
       _allNews = NewsDataModel(
         status: "success",
         totalResults: articles.length,
@@ -157,7 +144,6 @@ class NewsProvider extends ChangeNotifier {
     }
   }
 
-  // Thêm method để truy cập repository methods
   FirestoreNewsRepositoryImpl get firestoreRepo => _newsRepo;
 
   void _updateUI() {

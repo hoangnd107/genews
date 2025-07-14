@@ -36,11 +36,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Lắng nghe thay đổi tab để tải lại bookmark khi màn hình này được kích hoạt
     final mainScreenProvider = Provider.of<MainScreenProvider>(context);
     final currentIndex = mainScreenProvider.currentIndex;
 
-    // Index của BookmarksScreen là 2
     if (currentIndex == 2 && _previousTabIndex != 2) {
       _loadBookmarks();
     }
@@ -73,7 +71,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     try {
       final bookmarks = await _bookmarksService.getSavedArticles();
       debugPrint('Bookmarks loaded: count = \\${bookmarks.length}');
-      // Extract unique categories from bookmarked articles
       final categorySet = <String>{};
       for (var article in bookmarks) {
         final cat = CategoryMappingService.toVietnamese(article.category);
@@ -99,12 +96,9 @@ class _BookmarksScreenState extends State<BookmarksScreen>
   }
 
   void _removeBookmark(Result article) async {
-    // Lưu lại tin vừa xóa để có thể hoàn tác
     final removedArticle = article;
-    // Xóa tin khỏi SharedPreferences
     await _bookmarksService.removeArticle(removedArticle);
 
-    // Cập nhật UI ngay lập tức
     setState(() {
       _bookmarkedArticles.removeWhere(
         (a) =>
@@ -121,9 +115,7 @@ class _BookmarksScreenState extends State<BookmarksScreen>
           action: SnackBarAction(
             label: 'Hoàn tác',
             onPressed: () async {
-              // Lưu lại tin đã xóa
               await _bookmarksService.saveArticle(removedArticle);
-              // Tải lại danh sách để cập nhật UI
               _loadBookmarks();
             },
           ),
@@ -182,19 +174,16 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     }).toList();
   }
 
-  // THÊM: Hàm lấy màu sắc cho category từ DiscoverScreen
   List<Color> _getCategoryColors(String category) {
     final vietnameseCategory = CategoryMappingService.toVietnamese(category);
     return CategoryMappingService.getCategoryColors(vietnameseCategory);
   }
 
-  // THÊM: Hàm lấy icon cho category từ DiscoverScreen
   IconData _getCategoryIcon(String? category) {
     final vietnameseCategory = CategoryMappingService.toVietnamese(category);
     return CategoryMappingService.getCategoryIcon(vietnameseCategory);
   }
 
-  // Thay thế method _buildSliverAppBar và search bar section
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       floating: false,
@@ -285,7 +274,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     if (mainScreenProvider.currentIndex == 2 &&
         !_isLoading &&
         _bookmarkedArticles.isEmpty) {
-      // Ensure bookmarks are loaded when switching to this tab
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _loadBookmarks();
       });
@@ -389,15 +377,14 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                       ),
                     ),
                   ),
-                if (displayCategories.length >
-                    1) // Chỉ hiển thị nếu có category
+                if (displayCategories.length > 1)
                   SliverToBoxAdapter(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       color:
                           isDarkMode
                               ? Colors.grey[900]
-                              : Colors.white, // Màu nền category bar
+                              : Colors.white,
                       child: CategoryBar(
                         availableCategories: displayCategories,
                         selectedCategory: selectedCategory ?? 'Tất cả',
@@ -438,13 +425,11 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // Sửa lỗi: lấy đúng key tiếng Anh cho màu sắc thống kê
   Widget _buildStatisticsSection() {
     final filteredBookmarks = _getFilteredBookmarks();
     final categoryStats = <String, int>{};
 
     for (var article in _bookmarkedArticles) {
-      // Dùng toEnglish để lấy key tiếng Anh cho việc đếm thống kê
       final categoryEn = CategoryMappingService.toEnglish(
         article.category?.toString() ?? 'other',
       );
@@ -541,7 +526,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // SỬA ĐỔI: Thay thế _buildBookmarksContent bằng PaginatedListView
   Widget _buildBookmarksContent() {
     final filteredBookmarks = _getFilteredBookmarks();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -618,7 +602,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
       );
     }
 
-    // SỬA LỖI: Chỉ hiển thị pagination nếu có tin tức
     return SliverToBoxAdapter(
       child:
           filteredBookmarks.isNotEmpty
@@ -639,11 +622,10 @@ class _BookmarksScreenState extends State<BookmarksScreen>
                   ),
                 ),
               )
-              : const SizedBox.shrink(), // Không hiển thị gì nếu không có tin
+              : const SizedBox.shrink(),
     );
   }
 
-  // THÊM: _buildGridItem để dùng trong PaginatedListView
   Widget _buildGridItem(Result article, bool isSaved) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -668,7 +650,6 @@ class _BookmarksScreenState extends State<BookmarksScreen>
     );
   }
 
-  // SỬA LỖI: Thêm hàm _buildListRowItem bị thiếu
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 

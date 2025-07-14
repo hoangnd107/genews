@@ -40,8 +40,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
   String _searchQuery = '';
   List<Result> _filteredArticles = [];
   bool _isSearchActive = false;
-  bool _isListView =
-      true; // true = danh sách dạng dòng, false = lưới (NewsCard)
+  bool _isListView = true;
 
   @override
   void initState() {
@@ -103,7 +102,7 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
 
   void _performSearch(String query) {
     if (query.isEmpty) {
-      _loadCategoryNews(); // Reload category news when search is cleared
+      _loadCategoryNews();
       setState(() {
         _searchQuery = '';
       });
@@ -147,12 +146,10 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     _performSearch('');
   }
 
-  // Thêm method share article
   void _shareArticle(Result article) {
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
-  // Thêm method format time
   String _formatTime(DateTime? pubDate) {
     if (pubDate == null) return "Vừa xong";
 
@@ -561,7 +558,6 @@ class _CategoryNewsScreenState extends State<CategoryNewsScreen> {
     );
   }
 
-  // THÊM METHOD MỚI cho list row item tương tự DiscoverScreen
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(

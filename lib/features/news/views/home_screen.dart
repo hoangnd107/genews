@@ -171,21 +171,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Result> _getFilteredNews(List<Result> allNews, [String? searchQuery]) {
     List<Result> filtered = List.from(allNews);
 
-    // SỬA LẠI: Lọc category bằng tiếng Việt để đảm bảo logic đúng
     if (selectedCategory != null) {
-      // selectedCategory đã là tiếng Việt (ví dụ: "Kinh doanh")
       filtered =
           filtered.where((article) {
-            // Chuẩn hóa category của bài viết về tiếng Việt
             final articleVietnameseCat = CategoryMappingService.toVietnamese(
               article.category,
             );
-            // So sánh 2 chuỗi tiếng Việt
             return articleVietnameseCat == selectedCategory;
           }).toList();
     }
 
-    // Search filter (phần này đã đúng, giữ nguyên)
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final query = searchQuery.toLowerCase();
       filtered =
@@ -618,7 +613,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildNewsListSection(List<Result> filteredArticles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // SỬA LỖI: Chỉ hiển thị section này nếu có tin tức để lọc
     if (filteredArticles.isEmpty) {
       return const SizedBox.shrink(); // Không hiển thị gì nếu không có tin
     }

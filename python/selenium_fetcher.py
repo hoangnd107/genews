@@ -1,8 +1,6 @@
 import os
-import sys
 import time
 import logging
-import traceback
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
@@ -17,10 +15,6 @@ from base_fetcher import BaseFetcher
 
 
 class SeleniumFetcher(BaseFetcher):
-    """
-    Fetches news from Dantri.com.vn using Selenium and saves to Firestore.
-    Inherits common functionality from BaseFetcher.
-    """
 
     BASE_URL = "https://dantri.com.vn"
     SOURCE_CONFIG = {
@@ -53,13 +47,11 @@ class SeleniumFetcher(BaseFetcher):
     }
 
     def __init__(self):
-        """Initializes the Selenium fetcher."""
         super().__init__(source_id=self.SOURCE_CONFIG["source_id"])
         self.driver = None
         self.wait = None
 
     def _init_selenium(self):
-        """Initializes the Selenium WebDriver with Chrome options."""
         if self.driver:
             logging.info("Selenium WebDriver is already initialized.")
             return
@@ -119,7 +111,6 @@ class SeleniumFetcher(BaseFetcher):
             raise
 
     def _close_selenium(self):
-        """Closes the Selenium WebDriver if it's running."""
         if self.driver:
             self.driver.quit()
             self.driver = None
@@ -127,7 +118,6 @@ class SeleniumFetcher(BaseFetcher):
             logging.info("Selenium WebDriver closed.")
 
     def _extract_full_url(self, relative_url: str) -> str:
-        """Convert relative URL to full URL."""
         if relative_url.startswith("http"):
             return relative_url
         elif relative_url.startswith("//"):
@@ -145,7 +135,6 @@ class SeleniumFetcher(BaseFetcher):
         image_url: Optional[str],
         category_name: str,
     ) -> Dict[str, Any]:
-        """Creates a standardized article dictionary."""
         now = datetime.now().isoformat()
         full_link = self._extract_full_url(link)
 
@@ -182,7 +171,6 @@ class SeleniumFetcher(BaseFetcher):
     def fetch_category_articles(
         self, category_slug: str, category_name: str
     ) -> List[Dict[str, Any]]:
-        """Fetches articles from a specific category page."""
         category_url = f"{self.BASE_URL}/{category_slug}.htm"
         logging.info(f"Fetching articles from: {category_url}")
 
@@ -257,7 +245,6 @@ class SeleniumFetcher(BaseFetcher):
             return []
 
     def fetch_all(self) -> bool:
-        """Fetches news for all categories defined in the configuration."""
         try:
             self._init_selenium()
             total_saved = 0
@@ -302,17 +289,16 @@ class SeleniumFetcher(BaseFetcher):
         logging.info(f"Total existing articles skipped: {total_skipped}")
         if successful_categories:
             logging.info(
-                f"✅ Successful categories: {', '.join(successful_categories)}"
+                f"Successful categories: {', '.join(successful_categories)}"
             )
         if failed_categories:
             logging.warning(
-                f"❌ Failed/Empty categories: {', '.join(failed_categories)}"
+                f"Failed/Empty categories: {', '.join(failed_categories)}"
             )
 
         return total_saved > 0
 
     def scrape_full_article_content(self, url: str) -> str:
-        """Scrape full article content from a given URL."""
         try:
             self.driver.get(url)
             time.sleep(3)
@@ -350,8 +336,7 @@ class SeleniumFetcher(BaseFetcher):
             return "Content scraping failed."
 
     def scrape_content_for_existing_articles(self, limit: int = 10):
-        """Finds articles missing full content and scrapes it."""
-        logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
+        logging.info(f"Starting to scrape full content for up to {limit} articles.")
 
         try:
             self._init_selenium()
@@ -383,7 +368,7 @@ class SeleniumFetcher(BaseFetcher):
                     updated_count += 1
                     time.sleep(3)
 
-            logging.info(f"✅ Updated content for {updated_count} articles.")
+            logging.info(f"Updated content for {updated_count} articles.")
 
         except Exception as e:
             logging.error(
@@ -394,7 +379,6 @@ class SeleniumFetcher(BaseFetcher):
 
 
 def main():
-    """Main function to run the fetcher."""
     fetcher = SeleniumFetcher()
     fetcher.run()
 

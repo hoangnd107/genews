@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Enum cho các lựa chọn cỡ chữ
 enum AppFontSize { small, medium, large }
 
 class ThemeProvider with ChangeNotifier {
   static const String _themeModeKey = 'themeMode';
-  ThemeMode _themeMode = ThemeMode.system; // Mặc định theo hệ thống
+  ThemeMode _themeMode = ThemeMode.system;
 
   ThemeMode get themeMode => _themeMode;
 
@@ -36,7 +35,7 @@ class ThemeProvider with ChangeNotifier {
     } else if (mode == ThemeMode.dark) {
       themeModeString = 'dark';
     } else {
-      themeModeString = 'system'; // Mặc định là system
+      themeModeString = 'system';
     }
     await prefs.setString(_themeModeKey, themeModeString);
     notifyListeners();
@@ -44,11 +43,7 @@ class ThemeProvider with ChangeNotifier {
 
   bool get isDarkMode {
     if (_themeMode == ThemeMode.system) {
-      // Nếu bạn muốn kiểm tra theme hệ thống thực sự, bạn cần context.
-      // Tuy nhiên, để đơn giản, chúng ta có thể giả định nó không phải là dark
-      // hoặc bạn có thể truyền BuildContext vào đây nếu cần thiết cho Switch.
-      // Cách đơn giản hơn là Switch sẽ dựa trên giá trị _themeMode trực tiếp.
-      return false; // Hoặc dựa trên một giá trị mặc định nào đó
+      return false;
     }
     return _themeMode == ThemeMode.dark;
   }
@@ -56,11 +51,10 @@ class ThemeProvider with ChangeNotifier {
 
 class FontSizeProvider with ChangeNotifier {
   static const String _fontSizeKey = 'fontSize';
-  AppFontSize _selectedFontSize = AppFontSize.medium; // Mặc định là vừa
+  AppFontSize _selectedFontSize = AppFontSize.medium;
 
   AppFontSize get selectedFontSize => _selectedFontSize;
 
-  // Hệ số nhân cho cỡ chữ
   double get fontSizeMultiplier {
     switch (_selectedFontSize) {
       case AppFontSize.small:
@@ -72,7 +66,6 @@ class FontSizeProvider with ChangeNotifier {
     }
   }
 
-  // Ánh xạ AppFontSize thành chuỗi để hiển thị
   String get selectedFontSizeText {
     switch (_selectedFontSize) {
       case AppFontSize.small:

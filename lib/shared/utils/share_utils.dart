@@ -19,12 +19,12 @@ Future<void> shareNewsLink({
 
   try {
     final String shareText = '''
-📰 ${title ?? 'Tin tức mới'}
+    ${title ?? 'Tin tức mới'}
 
-🔗 $url
+    $url
 
-📱 Chia sẻ từ GeNews
-''';
+    Chia sẻ từ GeNews
+    ''';
 
     final box = context.findRenderObject() as RenderBox?;
     
@@ -34,7 +34,6 @@ Future<void> shareNewsLink({
       sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
     );
   } catch (e) {
-    // Hiển thị dialog backup nếu native share không hoạt động
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -73,11 +72,11 @@ Future<void> shareNewsLink({
                     ),
                   ),
                   child: Text(
-                    '''📰 ${title ?? 'Tin tức mới'}
+                    '''${title ?? 'Tin tức mới'}
 
-🔗 $url
+                    $url
 
-📱 Chia sẻ từ GeNews''',
+                    Chia sẻ từ GeNews''',
                     style: TextStyle(
                       color: isDarkMode ? Colors.white : Colors.black87,
                       fontSize: 13,
@@ -103,11 +102,11 @@ Future<void> shareNewsLink({
                 try {
                   // Copy to clipboard
                   await Clipboard.setData(ClipboardData(
-                    text: '''📰 ${title ?? 'Tin tức mới'}
+                    text: '''${title ?? 'Tin tức mới'}
 
-🔗 $url
+                    $url
 
-📱 Chia sẻ từ GeNews''',
+                    Chia sẻ từ GeNews''',
                   ));
                   
                   Navigator.of(context).pop();

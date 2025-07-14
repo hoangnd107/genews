@@ -12,17 +12,8 @@ from firebase_admin import credentials, firestore
 
 
 class BaseFetcher(ABC):
-    """
-    An abstract base class for news fetchers.
-    Handles common functionalities like logging, configuration,
-    Firebase initialization, and saving data to Firestore.
-    """
 
     def __init__(self, source_id: str):
-        """
-        Initializes the base fetcher.
-        :param source_id: A unique identifier for the news source (e.g., 'vnexpress', 'dantri').
-        """
         self.source_id = source_id
         self.db = None
         self.articles_collection = "articles"
@@ -32,8 +23,6 @@ class BaseFetcher(ABC):
         self._init_firebase()
 
     def _setup_logging(self):
-        """Configures a standardized logger."""
-        # Remove existing handlers to avoid duplicate logs
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 
@@ -44,7 +33,6 @@ class BaseFetcher(ABC):
         )
 
     def _load_config(self):
-        """Loads configuration from the .env file."""
         env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
         load_dotenv(env_path)
         self.articles_collection = os.getenv("ARTICLES_COLLECTION", "articles")
@@ -52,10 +40,6 @@ class BaseFetcher(ABC):
         logging.info("Configuration loaded.")
 
     def _init_firebase(self):
-        """
-        Initializes the Firebase Admin SDK if not already initialized.
-        Ensures that the service account path is correctly resolved.
-        """
         if firebase_admin._apps:
             self.db = firestore.client()
             logging.info("Firebase already initialized. Using existing app.")
@@ -67,7 +51,6 @@ class BaseFetcher(ABC):
                 "FIREBASE_SERVICE_ACCOUNT_PATH environment variable is required."
             )
 
-        # Resolve path relative to the script's directory if it's not absolute
         if not os.path.isabs(service_account_path):
             service_account_path = os.path.join(
                 os.path.dirname(__file__), service_account_path
@@ -88,7 +71,6 @@ class BaseFetcher(ABC):
             raise
 
     def _generate_article_id(self, link: str) -> str:
-        """Generates a unique article ID from its link using MD5 hash."""
         if not link:
             raise ValueError("Link cannot be empty for generating an article ID.")
         return hashlib.md5(link.encode("utf-8")).hexdigest()
@@ -96,11 +78,6 @@ class BaseFetcher(ABC):
     def save_articles_to_firestore(
         self, articles: List[Dict[str, Any]], category_name: str
     ) -> Tuple[int, int]:
-        """
-        Saves a list of articles to Firestore in batches, skipping duplicates.
-        This version is optimized to reduce read operations.
-        Returns a tuple of (saved_count, skipped_count).
-        """
         if not articles:
             logging.info(f"No articles to save for category '{category_name}'.")
             return 0, 0
@@ -172,9 +149,6 @@ class BaseFetcher(ABC):
         fetch_type: str,
         status: str = "success",
     ):
-        """
-        Updates a summary document in Firestore with the results of the fetch process.
-        """
         summary_doc_id = f"summary_{self.source_id}"
         logging.info(f"Updating summary document: {summary_doc_id}")
         try:
@@ -201,19 +175,11 @@ class BaseFetcher(ABC):
 
     @abstractmethod
     def fetch_all(self) -> bool:
-        """
-        The main method to be implemented by subclasses to fetch all news.
-        It should orchestrate the entire fetching process for the source.
-        Should return True if new articles were saved, False otherwise.
-        """
         pass
 
     def run(self):
-        """
-        Executes the fetcher's main logic and handles overall logging.
-        """
         logging.info("=" * 60)
-        logging.info(f"🚀 STARTING {self.source_id.upper()} FETCH PROCESS")
+        logging.info(f"STARTING {self.source_id.upper()} FETCH PROCESS")
         logging.info("=" * 60)
         start_time = datetime.now()
 
@@ -221,7 +187,7 @@ class BaseFetcher(ABC):
             success = self.fetch_all()
             if success:
                 logging.info(
-                    f"🎉 SUCCESS! {self.source_id.upper()} news fetched and saved!"
+                    f"SUCCESS! {self.source_id.upper()} news fetched and saved!"
                 )
             else:
                 logging.warning(
@@ -234,6 +200,6 @@ class BaseFetcher(ABC):
             )
         finally:
             duration = datetime.now() - start_time
-            logging.info("🏁 PROCESS COMPLETED!")
-            logging.info(f"⏱️  Total execution time: {duration}")
+            logging.info("PROCESS COMPLETED!")
+            logging.info(f"Total execution time: {duration}")
             logging.info("=" * 60)

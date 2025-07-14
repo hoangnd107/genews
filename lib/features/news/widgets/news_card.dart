@@ -21,7 +21,6 @@ class NewsCard extends StatelessWidget {
     this.isSaved = false,
   });
 
-  // Hàm duy nhất để hiển thị category
   String _getCategoryDisplayName(dynamic category) {
     return CategoryMappingService.toVietnamese(category);
   }
@@ -189,7 +188,6 @@ void _openNewsWebView(BuildContext context, Result newsData) async {
     return;
   }
 
-  // Check internet connection before opening webview
   final offlineService = OfflineNewsService.instance;
   final hasInternet = await offlineService.hasInternetConnection();
 

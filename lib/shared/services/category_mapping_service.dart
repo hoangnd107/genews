@@ -34,7 +34,6 @@ class CategoryMappingService {
     "crime": "Tội phạm",
   };
 
-  // Map màu sắc chuẩn cho từng category (key tiếng Anh)
   static final Map<String, List<Color>> _categoryColorMap = {
     'top': [Color(0xFFFFD600), Color(0xFFFFEB3B)],
     'business': [Color(0xFF2E7D32), Color(0xFF4CAF50)],
@@ -68,7 +67,6 @@ class CategoryMappingService {
     'crime': [Color(0xFFD32F2F), Color(0xFFFFCDD2)],
   };
 
-  // Map icon chuẩn cho từng category (key tiếng Anh)
   static final Map<String, IconData> _categoryIconMap = {
     'top': Icons.star,
     'business': Icons.business_center,
@@ -128,7 +126,6 @@ class CategoryMappingService {
     return categoryEnToVi[en] ?? en;
   }
 
-  /// Chuyển category từ bất kỳ format nào sang Vietnamese để hiển thị
   static String toVietnamese(dynamic category) {
     if (category == null) return "";
     String categoryStr;

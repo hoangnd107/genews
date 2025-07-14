@@ -1,19 +1,14 @@
 import 'package:webview_flutter/webview_flutter.dart';
 
-/// Utility class cho các cấu hình WebView tối ưu
 class WebViewUtils {
-  // User Agent tối ưu cho mobile
   static const String optimizedUserAgent =
       'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 '
       'GeNews/1.0';
 
-  /// Script tối ưu hóa hiệu năng cho trang web
   static const String performanceOptimizationScript = '''
     (function() {
-      // Tối ưu hóa hiệu năng trang web
       try {
-        // 1. Lazy loading cho tất cả images
         var images = document.querySelectorAll('img:not([loading])');
         images.forEach(function(img) {
           img.setAttribute('loading', 'lazy');
@@ -21,7 +16,6 @@ class WebViewUtils {
           img.style.height = 'auto';
         });
 
-        // 2. Tối ưu video
         var videos = document.querySelectorAll('video');
         videos.forEach(function(video) {
           video.style.maxWidth = '100%';
@@ -29,7 +23,6 @@ class WebViewUtils {
           video.preload = 'metadata';
         });
 
-        // 3. Ẩn các element không cần thiết
         var unnecessaryElements = document.querySelectorAll(
           '.newsletter-signup, .subscribe-popup, .cookie-banner, ' +
           '.notification-bar, .floating-social, .sticky-sidebar, ' +
@@ -80,11 +73,9 @@ class WebViewUtils {
     })();
   ''';
 
-  /// Script chặn quảng cáo nhẹ và hiệu quả
   static const String lightAdBlockScript = '''
     (function() {
       try {
-        // Danh sách selector cần chặn (chỉ những cái quan trọng nhất)
         var adSelectors = [
           'iframe[src*="doubleclick"]',
           'iframe[src*="googlesyndication"]', 
@@ -115,7 +106,6 @@ class WebViewUtils {
           });
         }
         
-        // Chặn ngay lập tức
         removeAdsEfficiently();
         
         // Observer nhẹ - chỉ observe khi thực sự cần thiết
@@ -144,7 +134,6 @@ class WebViewUtils {
     })();
   ''';
 
-  /// Cấu hình WebViewController với các tối ưu hóa
   static WebViewController createOptimizedController({
     required String url,
     required Function(bool) onLoadingChanged,
@@ -170,10 +159,8 @@ class WebViewUtils {
               onPageFinished: (String url) {
                 onLoadingChanged(false);
 
-                // Luôn chạy script tối ưu hóa hiệu năng
                 controller.runJavaScript(performanceOptimizationScript);
 
-                // Chỉ chạy ad blocker khi được bật
                 if (enableAdBlock) {
                   controller.runJavaScript(lightAdBlockScript);
                 }
@@ -196,7 +183,6 @@ class WebViewUtils {
     return controller;
   }
 
-  /// Danh sách domain quảng cáo cơ bản
   static const List<String> basicAdDomains = [
     'doubleclick.net',
     'googleadservices.com',
@@ -211,7 +197,6 @@ class WebViewUtils {
     'pagead2.googlesyndication.com',
   ];
 
-  /// Kiểm tra URL có phải là quảng cáo không
   static bool isAdUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
@@ -219,7 +204,6 @@ class WebViewUtils {
     return basicAdDomains.any((domain) => uri.host.contains(domain));
   }
 
-  /// Script điều chỉnh cỡ chữ
   static String getFontSizeScript(int fontSize) {
     return '''
       (function() {

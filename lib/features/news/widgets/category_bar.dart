@@ -7,7 +7,7 @@ class CategoryBar extends StatefulWidget {
   final List<String>? availableCategories;
   final IconData Function(String)? getCategoryIcon;
   final List<Color> Function(String)? getCategoryColors;
-  final bool enableAutoScroll; // NEW
+  final bool enableAutoScroll;
 
   const CategoryBar({
     super.key,
@@ -16,7 +16,7 @@ class CategoryBar extends StatefulWidget {
     this.availableCategories,
     this.getCategoryIcon,
     this.getCategoryColors,
-    this.enableAutoScroll = true, // default: true
+    this.enableAutoScroll = true,
   });
 
   @override
@@ -81,7 +81,6 @@ class _CategoryBarState extends State<CategoryBar> {
         !_lastCategories.asMap().entries.every(
           (e) => e.value == categories[e.key],
         )) {
-      // Danh sách category đã thay đổi, reset lại key
       _itemKeys = {for (final cat in categories) cat: GlobalKey()};
       _lastCategories = List<String>.from(categories);
     }
@@ -120,7 +119,6 @@ class _CategoryBarState extends State<CategoryBar> {
 
     if (_scrollController == null || !_scrollController!.hasClients) return;
 
-    // Nếu không tìm thấy (thường là 'Tất cả'), hoặc chọn 'Tất cả', cuộn về đầu
     if (index < 0 || selected == 'Tất cả') {
       _scrollController!.animateTo(
         0,
@@ -130,13 +128,11 @@ class _CategoryBarState extends State<CategoryBar> {
       return;
     }
 
-    // Lấy key của item được chọn
     final key = _itemKeys[selected];
     if (key == null) return;
     final contextItem = key.currentContext;
     if (contextItem == null) return;
 
-    // Lấy RenderBox của item và của ListView
     final box = contextItem.findRenderObject() as RenderBox?;
     final listBox = context.findRenderObject() as RenderBox?;
     if (box == null || listBox == null) return;
@@ -145,7 +141,6 @@ class _CategoryBarState extends State<CategoryBar> {
     final itemWidth = box.size.width;
     final listWidth = listBox.size.width;
 
-    // Tính toán offset để item nằm giữa
     final targetOffset =
         _scrollController!.offset + itemOffset - (listWidth - itemWidth) / 2;
 

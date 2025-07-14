@@ -29,7 +29,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   List<Result> _searchResults = [];
   bool _isSearching = false;
   bool _showAllCategories = false;
-  bool _isListView = true; // Thêm biến để toggle view mode
+  bool _isListView = true;
 
   @override
   void initState() {
@@ -102,14 +102,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       _isSearching = false;
     });
 
-    // Load saved states for search results
     _loadSavedStates(searchResults);
   }
 
   void _onSearchChanged(String value) {
-    setState(() {}); // Để cập nhật suffixIcon
-
-    // Thực hiện tìm kiếm real-time
+    setState(() {});
     _performSearch(value);
   }
 
@@ -140,16 +137,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }).toList();
   }
 
-  // Method để lấy màu sắc cho category (dùng cho UI)
   List<Color> _getCategoryColors(String category) {
-    // Chuẩn hóa category về tiếng Việt để lấy màu
     final vietnameseCategory = CategoryMappingService.toVietnamese(category);
     return CategoryMappingService.getCategoryColors(vietnameseCategory);
   }
 
-  // Method để lấy icon cho từng category
   IconData _getCategoryIcon(String? category) {
-    // Chuẩn hóa category về tiếng Việt để lấy icon
     final vietnameseCategory = CategoryMappingService.toVietnamese(category);
     return CategoryMappingService.getCategoryIcon(vietnameseCategory);
   }
@@ -202,13 +195,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 },
                 child: CustomScrollView(
                   slivers: [
-                    // Custom App Bar (không có search bar)
                     _buildSliverAppBar(),
-
-                    // Search Bar đặt riêng dưới AppBar
                     SliverToBoxAdapter(child: _buildSearchBar()),
-
-                    // Content
                     SliverToBoxAdapter(
                       child: _buildContent(newsState, allArticles),
                     ),
@@ -370,12 +358,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       return _buildErrorState();
     }
 
-    // Show search results if searching
     if (_searchQuery.isNotEmpty) {
       return _buildSearchResults();
     }
 
-    // Show default discover content
     return _buildDiscoverContent(allArticles);
   }
 
@@ -429,7 +415,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget _buildDiscoverContent(List<Result> allArticles) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Group articles by categories
     Map<String, List<Result>> categorizedNews = {};
 
     for (var article in allArticles) {
@@ -447,17 +432,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Trending Section
             _buildTrendingSection(allArticles.take(4).toList()),
-
             const SizedBox(height: 24),
 
-            // Categories Grid
             _buildCategoriesGrid(categorizedNews),
-
             const SizedBox(height: 24),
 
-            // All News with Pagination
             _buildAllNewsSection(allArticles),
           ],
         ),
@@ -590,9 +570,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget _buildCategoriesGrid(Map<String, List<Result>> categorizedNews) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Lấy số lượng categories hiển thị dựa trên state
-    final int displayCount =
-        _showAllCategories ? categorizedNews.keys.length : 4;
+    final int displayCount = _showAllCategories ? categorizedNews.keys.length : 4;
     final categories = categorizedNews.keys.take(displayCount).toList();
 
     if (categories.isEmpty) return const SizedBox();
@@ -704,7 +682,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           },
         ),
 
-        // Thêm nút "Xem thêm" / "Ẩn"
         if (categorizedNews.keys.length > 4) ...[
           const SizedBox(height: 12),
           Center(
@@ -762,7 +739,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final articlesForList = allArticles.skip(4).toList();
 
-    // SỬA LỖI: Chỉ hiển thị section này nếu có tin tức
     if (articlesForList.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -809,7 +785,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         ),
         const SizedBox(height: 16),
 
-        // Paginated list of all news
         SizedBox(
           height: 600,
           child: PaginatedListView<Result>(
@@ -851,7 +826,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  // THÊM METHOD MỚI cho list row item tương tự HomeScreen
   Widget _buildListRowItem(Result article, bool isSaved) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -960,7 +934,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
             const SizedBox(width: 8),
 
-            // Icon menu 3 chấm
             SizedBox(
               height: 80,
               child: Center(
@@ -1070,12 +1043,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  // THÊM METHOD chia sẻ
   void _shareArticle(Result article) {
     shareNewsLink(context: context, url: article.link, title: article.title);
   }
 
-  // THÊM METHOD format time
   String _formatTime(DateTime? pubDate) {
     if (pubDate == null) return "Vừa xong";
 
@@ -1096,7 +1067,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
   }
 
-  // Cập nhật _buildSearchResults để phù hợp với logic mới
   Widget _buildSearchResults() {
     if (_isSearching) {
       return const SizedBox(
@@ -1176,16 +1146,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Search results với layout tương ứng - ĐẢO NGƯỢC LOGIC
           _isListView
-              ? _buildSearchResultsListView() // Danh sách dạng dòng
-              : _buildSearchResultsGrid(), // Lưới (NewsCard)
+              ? _buildSearchResultsListView()
+              : _buildSearchResultsGrid(),
         ],
       ),
     );
   }
 
-  // Đổi tên search results methods để phù hợp
   Widget _buildSearchResultsGrid() {
     return ListView.separated(
       shrinkWrap: true,

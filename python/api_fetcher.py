@@ -10,10 +10,6 @@ from base_fetcher import BaseFetcher
 
 
 class APIFetcher(BaseFetcher):
-    """
-    Fetches news by category from NewsData API and saves to Firestore.
-    Inherits common functionality from BaseFetcher.
-    """
 
     CATEGORIES = [
         "business",
@@ -36,26 +32,20 @@ class APIFetcher(BaseFetcher):
     ]
 
     def __init__(self):
-        """Initializes the API fetcher."""
         super().__init__(source_id="newsdata_api")
         self._load_api_key()
         self.api_client = NewsDataApiClient(apikey=self.api_key)
 
     def _load_api_key(self):
-        """Loads the NewsData.io API key from environment variables."""
         self.api_key = os.getenv("NEWS_API_KEY")
         if not self.api_key:
             raise ValueError("NEWS_API_KEY environment variable is required.")
         logging.info("NewsData.io API key loaded.")
 
     def _process_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
-        """Standardizes a single article's fields."""
         now = datetime.now().isoformat()
-        # The API uses 'article_id' which is a hash of the URL, which is good.
-        # We can use it directly as our document ID.
         article_id = article.get("article_id")
 
-        # If the API doesn't provide an ID, we generate one from the link.
         if not article_id:
             article_id = self._generate_article_id(article.get("link"))
 
@@ -80,11 +70,9 @@ class APIFetcher(BaseFetcher):
         }
 
     def fetch_category_news(self, category: str) -> List[Dict[str, Any]]:
-        """Fetches news for a specific category from the API."""
         logging.info(f"Fetching news for category: '{category.upper()}'")
         processed_articles = []
         try:
-            # Fetching from multiple English-speaking countries for broader coverage
             response = self.api_client.news_api(
                 language="en", category=category
             )
@@ -112,7 +100,6 @@ class APIFetcher(BaseFetcher):
         return processed_articles
 
     def fetch_all(self) -> bool:
-        """Fetches news for all defined categories."""
         total_saved = 0
         total_skipped = 0
         successful_categories = []
@@ -140,27 +127,25 @@ class APIFetcher(BaseFetcher):
             fetch_type="api_category_fetch",
         )
 
-        # Log final results
         logging.info(
             f"Total new articles saved: {total_saved} across {len(successful_categories)} categories."
         )
         logging.info(f"Total existing articles skipped: {total_skipped}.")
         if successful_categories:
             logging.info(
-                f"✅ Successful categories: {', '.join(successful_categories)}"
+                f"Successful categories: {', '.join(successful_categories)}"
             )
 
         failed_categories = set(self.CATEGORIES) - set(successful_categories)
         if failed_categories:
             logging.warning(
-                f"❌ Failed/Empty categories: {', '.join(failed_categories)}"
+                f"Failed/Empty categories: {', '.join(failed_categories)}"
             )
 
         return total_saved > 0
 
 
 def main():
-    """Main function to run the fetcher."""
     fetcher = APIFetcher()
     fetcher.run()
 

@@ -5,11 +5,10 @@ import time
 import argparse
 from bs4 import BeautifulSoup
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 
 from base_fetcher import BaseFetcher
 
-# --- Configuration ---
 VNEXPRESS_CONFIG = {
     "source_id": "vnexpress",
     "source_name": "VnExpress",
@@ -52,19 +51,13 @@ VNEXPRESS_CONFIG = {
 
 
 class RSSFetcher(BaseFetcher):
-    """
-    Fetches, parses, and stores articles from VnExpress RSS feeds into Firestore.
-    Inherits common functionality from BaseFetcher.
-    """
 
     def __init__(self):
-        """Initializes the fetcher, configuration, and services."""
         super().__init__(source_id=VNEXPRESS_CONFIG["source_id"])
         self.config = VNEXPRESS_CONFIG
         self._init_session()
 
     def _init_session(self):
-        """Initializes a requests session with a user-agent."""
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -74,17 +67,14 @@ class RSSFetcher(BaseFetcher):
         logging.info("Requests session initialized.")
 
     def _extract_image_from_description(self, description: str) -> Optional[str]:
-        """Extracts the first image URL from the description's HTML."""
         try:
             soup = BeautifulSoup(description, "html.parser")
             img_tag = soup.find("img")
             return img_tag["src"] if img_tag and img_tag.get("src") else None
         except Exception:
-            # logging.warning(f"Could not extract image from description: {e}")
             return None
 
     def _extract_description_text(self, description: str) -> str:
-        """Extracts and cleans the text from the description's HTML."""
         try:
             soup = BeautifulSoup(description, "html.parser")
             for tag in soup.find_all(["img", "br"]):
@@ -97,7 +87,6 @@ class RSSFetcher(BaseFetcher):
             return description
 
     def _parse_rss_date(self, date_string: str) -> str:
-        """Parses RSS date string to ISO 8601 format."""
         try:
             # Format: "Sun, 22 Jun 2025 22:07:14 +0700"
             dt = datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S %z")
@@ -111,7 +100,6 @@ class RSSFetcher(BaseFetcher):
     def _parse_rss_entry(
         self, entry: Dict[str, Any], category_name: str
     ) -> Optional[Dict[str, Any]]:
-        """Parses a single feedparser entry into a structured article dictionary."""
         link = entry.get("link")
         if not link:
             logging.warning(f"Skipping entry with no link: {entry.get('title')}")
@@ -147,9 +135,7 @@ class RSSFetcher(BaseFetcher):
     def fetch_rss_category(
         self, category_slug: str, category_name: str
     ) -> List[Dict[str, Any]]:
-        """Fetches and parses all articles from a specific RSS category."""
         rss_url = f"{self.config['base_rss_url']}/{category_slug}.rss"
-        # Special case for the main page RSS feed
         if category_slug == "trang-chu":
             rss_url = f"{self.config['base_url']}/rss/tin-moi-nhat.rss"
 
@@ -181,7 +167,6 @@ class RSSFetcher(BaseFetcher):
         return articles
 
     def fetch_all(self) -> bool:
-        """Iterates through all categories, fetches, and saves articles."""
         total_saved = 0
         total_skipped = 0
         successful_categories = []
@@ -197,7 +182,7 @@ class RSSFetcher(BaseFetcher):
                         successful_categories.append(name)
                     total_saved += saved
                     total_skipped += skipped
-                time.sleep(1)  # Be respectful to the server
+                time.sleep(1)
             except Exception as e:
                 logging.error(
                     f"Failed to process category '{name}': {e}", exc_info=True
@@ -212,7 +197,6 @@ class RSSFetcher(BaseFetcher):
         return total_saved > 0
 
     def scrape_full_article_content(self, url: str) -> str:
-        """Scrapes the full article content from a given URL."""
         try:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
@@ -221,7 +205,6 @@ class RSSFetcher(BaseFetcher):
             for selector in self.config["content_selectors"]:
                 content_div = soup.select_one(selector)
                 if content_div:
-                    # Remove unwanted tags like scripts, styles, and ads
                     for unwanted in content_div.find_all(
                         ["script", "style", ".ads", "figure"]
                     ):
@@ -237,8 +220,7 @@ class RSSFetcher(BaseFetcher):
             return "Content scraping failed."
 
     def scrape_content_for_existing_articles(self, limit: int = 10):
-        """Finds articles missing full content and scrapes it."""
-        logging.info(f"🔍 Starting to scrape full content for up to {limit} articles.")
+        logging.info(f"Starting to scrape full content for up to {limit} articles.")
         try:
             docs = (
                 self.db.collection(self.articles_collection)
@@ -268,7 +250,7 @@ class RSSFetcher(BaseFetcher):
                     updated_count += 1
                     time.sleep(2)  # Be respectful
 
-            logging.info(f"✅ Updated content for {updated_count} articles.")
+            logging.info(f"Updated content for {updated_count} articles.")
         except Exception as e:
             logging.error(
                 "An error occurred during content scraping batch.", exc_info=True
@@ -276,7 +258,6 @@ class RSSFetcher(BaseFetcher):
 
 
 def main():
-    """Main function to run the fetcher script with command-line arguments."""
     parser = argparse.ArgumentParser(description="Fetch news from VnExpress RSS feeds.")
     parser.add_argument(
         "--scrape-content",

@@ -15,7 +15,6 @@ class BookmarksService {
           try {
             return Result.fromJson(jsonDecode(json));
           } catch (e) {
-            // Skip invalid/corrupted entries
             return null;
           }
         })
@@ -27,7 +26,6 @@ class BookmarksService {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
     final articleId = article.articleId ?? article.link ?? '';
-    // Defensive: filter out corrupted/empty entries
     final filteredArticles =
         savedArticlesJson.where((json) {
           try {
@@ -36,24 +34,20 @@ class BookmarksService {
             return (a.articleId ?? a.link ?? '') != articleId ||
                 articleId.isEmpty;
           } catch (e) {
-            // Skip corrupted entry
             return false;
           }
         }).toList();
     final alreadySaved = filteredArticles.length != savedArticlesJson.length;
     if (alreadySaved) {
-      // Was saved, now removed
       await prefs.setStringList(_bookmarksKey, filteredArticles);
       return false;
     } else {
-      // Not saved, now add
       filteredArticles.insert(0, jsonEncode(article.toJson()));
       await prefs.setStringList(_bookmarksKey, filteredArticles);
       return true;
     }
   }
 
-  // Add a method to check if article is saved
   Future<bool> isArticleSaved(Result article) async {
     final prefs = await SharedPreferences.getInstance();
     final savedArticlesJson = prefs.getStringList(_bookmarksKey) ?? [];
