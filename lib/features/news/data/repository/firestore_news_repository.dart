@@ -18,7 +18,7 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
   final _offlineFirst = OfflineFirst();
 
   final ai.GenerativeModel _model = ai.GenerativeModel(
-    model: "gemini-2.5-pro",
+    model: "gemini-2.5-flash",
     apiKey: apiKeyGemini,
   );
 
@@ -131,7 +131,7 @@ class FirestoreNewsRepositoryImpl implements FirestoreNewsRepository {
     }
 
     final prompt = """
-Phân tích và tóm tắt tin tức sau theo định dạng yêu cầu, chỉ trả về nội dung tóm tắt, không thêm bất kỳ lời giới thiệu hay kết thúc nào:
+Với vai trò là một biên tập viên chuyên nghiệp, phân tích và tóm tắt tin tức sau theo định dạng yêu cầu, chỉ trả về nội dung tóm tắt, không thêm bất kỳ lời giới thiệu hay kết thúc nào:
 
 Nội dung tin tức:
 $content
@@ -305,7 +305,7 @@ Yêu cầu:
   @override
   Future<List<Result>> getArticlesByCategory(String category) async {
     try {
-      log("🔍 Getting articles for category: $category");
+      log("Getting articles for category: $category");
 
       final cachedArticles = await OfflineNewsService.instance
           .getArticlesByCategory(category);
@@ -352,7 +352,7 @@ Yêu cầu:
   @override
   Future<List<Result>> searchArticles(String query) async {
     try {
-      log("🔍 Searching cached articles with query: $query");
+      log("Searching cached articles with query: $query");
 
       return await OfflineNewsService.instance.searchCachedArticles(query);
     } catch (e) {
